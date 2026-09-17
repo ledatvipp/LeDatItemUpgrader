@@ -1,0 +1,28 @@
+# LeDatItemUpgrader | Phase 8 — Soft pity backend contract
+# FALSE bắt buộc trên Paper bridge hiện tại: chưa bootstrap live quote/escrow/progress hook.
+# Core PityQuoteService đã có và được kiểm thử. Không tự đổi chance của GUI Phase 6.
+config-version: 1
+enabled: false
+# Rỗng mặc định để không phá config khi admin đã đổi tên path/profile/target cũ.
+policies: []
+
+# Ví dụ chỉ dùng sau khi native integration được mở và các ID này vẫn tồn tại:
+# policies:
+#   - id: diamond_progress
+#     epoch: 1
+#     paths: [iron_progression]
+#     targets: [diamond]
+#     profiles: [standard]
+#     minimum-source-value: '90'
+#     increment-points: '1.25'
+#     maximum-points: '10'
+#
+# +1.25 điểm phần trăm/mỗi LOSS đã COMPLETED, cap +10 điểm; WIN COMPLETED reset streak.
+# Pending settlement, ABORTED, DRAW_INTENT, RECONCILIATION không tăng/reset pity.
+# Chỉ DESTROY được tính; KEEP/protection/DAMAGE/DOWNGRADE không nhận hoặc tạo pity.
+# Scope có policy/epoch/path/target/profile + source key/amount/value + fee/boost/output terms.
+# Không farm bằng path rẻ rồi đem điểm sang target đắt; đổi phí/boost/chance base cũng tách scope.
+# Đổi epoch = nhóm mới (không xóa snapshot nhóm cũ). Thay rule numeric cũng tách scope.
+# Bonus áp sau boost và trước min/max clamp; không vượt max chance, không cam kết thắng.
+# Quote pin version + failure count. DB lỗi không được coi thành streak=0.
+# Cùng player + scope chỉ cập nhật một lần trong SQL commit hoàn tất attempt.

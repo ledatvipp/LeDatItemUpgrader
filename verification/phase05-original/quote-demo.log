@@ -1,0 +1,17 @@
+SOURCE iron x1 = 90; TARGET diamond x1 = 900. All inputs are synthetic.
+QUOTE profile=standard; boosts=[]; vip=false; chance=9%; failure=DESTROY; resources=AVAILABLE_PREVIEW
+QUOTE profile=safe; boosts=[]; vip=false; chance=5.4%; failure=KEEP; resources=AVAILABLE_PREVIEW
+  COST vault; reserve=43.75; success=43.75; failure=43.75
+QUOTE profile=risky; boosts=[]; vip=false; chance=11.7%; failure=DESTROY; resources=AVAILABLE_PREVIEW
+  COST vault; reserve=7.5; success=7.5; failure=7.5
+QUOTE profile=standard; boosts=[]; vip=true; chance=9.45%; failure=DESTROY; resources=AVAILABLE_PREVIEW
+QUOTE profile=standard; boosts=[lucky_shard]; vip=false; chance=14%; failure=DESTROY; resources=AVAILABLE_PREVIEW
+  COST minecraft:emerald; reserve=2; success=2; failure=2
+QUOTE profile=standard; boosts=[lucky_shard]; vip=true; chance=14.45%; failure=DESTROY; resources=AVAILABLE_PREVIEW
+  COST minecraft:emerald; reserve=2; success=2; failure=2
+QUOTE profile=standard; boosts=[protection_scroll]; vip=false; chance=9%; failure=KEEP; resources=AVAILABLE_PREVIEW
+  COST minecraft:paper; reserve=1; success=0; failure=1
+QUOTE profile=safe; boosts=[]; vip=false; chance=5.4%; failure=KEEP; resources=UNAVAILABLE
+  COST vault; reserve=43.75; success=43.75; failure=43.75
+OUTCOME COST DEMO reserve=40; success=30; failure=40
+READ-ONLY: no outcome draw, debit, item removal, reward, GUI or actual reservation occurred.

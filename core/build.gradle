@@ -1,0 +1,131 @@
+tasks.withType(JavaCompile).configureEach { options.compilerArgs += ['-Werror'] }
+tasks.register('selfTest', JavaExec) {
+    group = 'verification'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'vn.ledat.itemupgrader.test.CoreSelfTest'
+    args layout.buildDirectory.file('reports/self-test.xml').get().asFile.absolutePath
+}
+tasks.named('test') { enabled = false } // Self-contained Java assertion suite; no JUnit dependency.
+tasks.named('check') { dependsOn selfTest }
+tasks.register('demo', JavaExec) {
+    dependsOn classes
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'vn.ledat.itemupgrader.demo.ValueDemo'
+}
+tasks.named('jar') {
+    archiveBaseName = 'LeDatItemUpgrader-backend-NOT-A-PLUGIN'
+    exclude 'vn/ledat/itemupgrader/demo/**'
+}
+
+tasks.register('catalogSelfTest', JavaExec) {
+    group = 'verification'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'vn.ledat.itemupgrader.test.CatalogSelfTest'
+    args layout.buildDirectory.file('reports/catalog-self-test.xml').get().asFile.absolutePath
+}
+tasks.named('check') { dependsOn catalogSelfTest }
+
+tasks.register('catalogDemo', JavaExec) {
+    dependsOn classes
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'vn.ledat.itemupgrader.demo.CatalogDemo'
+}
+
+
+tasks.register('phase03SelfTest', JavaExec) {
+    group = 'verification'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'vn.ledat.itemupgrader.test.Phase03SelfTest'
+    args layout.buildDirectory.file('reports/phase03-self-test.xml').get().asFile.absolutePath
+}
+tasks.named('check') { dependsOn phase03SelfTest }
+tasks.register('quoteDemo', JavaExec) {
+    dependsOn classes
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'vn.ledat.itemupgrader.demo.QuoteDemo'
+}
+
+tasks.register('phase04SelfTest', JavaExec) {
+    group = 'verification'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'vn.ledat.itemupgrader.test.Phase04SelfTest'
+    args layout.buildDirectory.file('reports/phase04-self-test.xml').get().asFile.absolutePath
+}
+tasks.named('check') { dependsOn phase04SelfTest }
+tasks.register('transactionDemo', JavaExec) {
+    dependsOn classes
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'vn.ledat.itemupgrader.demo.TransactionDemo'
+}
+
+tasks.register('phase05SelfTest', JavaExec) {
+    group = 'verification'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'vn.ledat.itemupgrader.test.Phase05SelfTest'
+    workingDir rootProject.projectDir
+    args layout.buildDirectory.file('reports/phase05-self-test.xml').get().asFile.absolutePath
+}
+tasks.named('check') { dependsOn phase05SelfTest }
+tasks.register('outputDemo', JavaExec) {
+    dependsOn classes
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'vn.ledat.itemupgrader.demo.OutputDemo'
+}
+
+
+tasks.register('phase06SelfTest', JavaExec) {
+    group = 'verification'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'vn.ledat.itemupgrader.test.Phase06SelfTest'
+    args layout.buildDirectory.file('reports/phase06-self-test.xml').get().asFile.absolutePath
+}
+tasks.named('check') { dependsOn phase06SelfTest }
+tasks.register('guiDemo', JavaExec) {
+    dependsOn classes
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'vn.ledat.itemupgrader.demo.GuiDemo'
+}
+
+
+tasks.register('phase07SelfTest', JavaExec) {
+    group = 'verification'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'vn.ledat.itemupgrader.test.Phase07SelfTest'
+    args layout.buildDirectory.file('reports/phase07-self-test.xml').get().asFile.absolutePath
+}
+tasks.named('check') { dependsOn phase07SelfTest }
+tasks.register('animationDemo', JavaExec) {
+    dependsOn classes
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'vn.ledat.itemupgrader.demo.AnimationDemo'
+}
+
+tasks.register('phase08SelfTest', JavaExec) {
+    group = 'verification'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'vn.ledat.itemupgrader.test.Phase08SelfTest'
+    args layout.buildDirectory.file('reports/phase08-self-test.xml').get().asFile.absolutePath
+}
+tasks.named('check') { dependsOn phase08SelfTest }
+tasks.register('progressDemo', JavaExec) {
+    dependsOn classes
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'vn.ledat.itemupgrader.demo.ProgressDemo'
+}
+
+tasks.register('phase09SelfTest', JavaExec) {
+    group = 'verification'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'vn.ledat.itemupgrader.test.Phase09SelfTest'
+    args layout.buildDirectory.file('reports/phase09-self-test.xml').get().asFile.absolutePath
+}
+tasks.named('check') { dependsOn phase09SelfTest }

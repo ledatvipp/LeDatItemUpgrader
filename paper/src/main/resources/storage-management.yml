@@ -1,0 +1,21 @@
+# LeDatItemUpgrader | Phase 9A — quản lý schema & kiểm tra storage
+config-version: 1
+# OFF: không query/CREATE schema, không chạy retention; history báo chưa sẵn sàng.
+# VERIFY: chỉ kiểm tra bảng/version/column/key/index có sẵn. Không tạo hoặc sửa schema.
+# INITIALIZE: chủ động CREATE bảng/index còn thiếu cho cài mới hoặc cài dở chưa có data,
+# rồi verify. Không DROP/ALTER, không sửa version mới hơn, không tạo lại bảng đã mất
+# của component đã được đánh version. Hãy backup trước và chỉ một server init.
+# Sau init thành công, đổi sang VERIFY và /upgrader reload cho những lần khởi động sau.
+# Đây KHÔNG phải bật gacha, escrow, debit/credit, mailbox, packet hoặc pity native.
+schema-mode: 'OFF'
+# Deadline này chặn publish kết quả trễ, KHÔNG đảm bảo ngắt được một JDBC/DDL đang chạy.
+# Tác vụ quá hạn vẫn giữ capacity đến khi future thật kết thúc; không retry mù.
+operation-timeout-seconds: 30
+maintenance:
+  # Opt-in xóa history hiển thị của COMPLETED/ABORTED đã quá retention-days.
+  # Dùng retention-days/retention-batch trong history.yml; không có hai bộ số liệu riêng.
+  # KHÔNG xóa journal, output, active/reconciliation, thống kê, pity hoặc completion receipt.
+  enabled: false
+  # Mỗi lượt chỉ MỘT batch; không loop cho hết backlog. Schema chưa READ_READY thì không chạy.
+  # Lỗi/timeout chuyển storage FAILED, cần recheck/reload sau khi xử lý nguyên nhân.
+  interval-seconds: 3600

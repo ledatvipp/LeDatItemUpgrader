@@ -1,0 +1,7 @@
+SIMULATION ONLY: all receipts and item payloads are synthetic.
+ATTEMPT=1e671ba3-27d8-3d89-97c6-f70f0b5e990e CHANCE=9% SAMPLE=12345678 RESULT=COMPLETED
+Vault reserve=40, success consumption=30, refund=10 (NOT real Vault calls)
+DUPLICATE=DUPLICATE draws=1 deliveries=1
+RECOVERY=COMPLETED sample=12345678 additional-draws=0
+AMBIGUOUS_DEBIT=RECONCILIATION_REQUIRED player-lock-retained=true
+Native escrow, Platform Ledger adapter, durable mailbox and GUI are NOT implemented by this demo.

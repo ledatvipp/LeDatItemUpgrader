@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="Phase09SQLite" tests="33" failures="0" errors="0">
+<testcase classname="Phase09SQLite" name="verify.empty-db-does-not-create"></testcase>
+<testcase classname="Phase09SQLite" name="initialize.twelve-tables-four-named-indexes"></testcase>
+<testcase classname="Phase09SQLite" name="initialize.idempotent-does-not-clear-data"></testcase>
+<testcase classname="Phase09SQLite" name="verify.works-on-query-only-connection"></testcase>
+<testcase classname="Phase09SQLite" name="initialize.readonly-db-cannot-be-labelled-ready"></testcase>
+<testcase classname="Phase09SQLite" name="schema.borrowed-transaction-not-committed"></testcase>
+<testcase classname="Phase09SQLite" name="schema.off-never-initializes"></testcase>
+<testcase classname="Phase09SQLite" name="schema.all-versions-preflight-before-any-create"></testcase>
+<testcase classname="Phase09SQLite" name="schema.fractional-version-never-truncated-to-one"></testcase>
+<testcase classname="Phase09SQLite" name="schema.unknown-component-id-not-relabelled"></testcase>
+<testcase classname="Phase09SQLite" name="schema.versioned-table-loss-not-empty-replacement"></testcase>
+<testcase classname="Phase09SQLite" name="schema.unversioned-populated-component-not-blessed"></testcase>
+<testcase classname="Phase09SQLite" name="schema.partial-empty-install-can-retry"></testcase>
+<testcase classname="Phase09SQLite" name="schema.missing-index-verify-fails-initialize-adds"></testcase>
+<testcase classname="Phase09SQLite" name="schema.wrong-index-order-not-dropped-or-replaced"></testcase>
+<testcase classname="Phase09SQLite" name="schema.missing-column-rejected-before-version-write"></testcase>
+<testcase classname="Phase09SQLite" name="schema.primary-key-required"></testcase>
+<testcase classname="Phase09SQLite" name="schema.unique-idempotency-key-required"></testcase>
+<testcase classname="Phase09SQLite" name="schema.partial-unique-index-is-not-global-guard"></testcase>
+<testcase classname="Phase09SQLite" name="schema.view-cannot-replace-table"></testcase>
+<testcase classname="Phase09SQLite" name="schema.metadata-pattern-escaped-and-exact"></testcase>
+<testcase classname="Phase09SQLite" name="bundle.journal-always-has-progress-hook"></testcase>
+<testcase classname="Phase09SQLite" name="recovery.bounded-pages-without-duplicate-rows"></testcase>
+<testcase classname="Phase09SQLite" name="recovery.never-reads-item-payloads"></testcase>
+<testcase classname="Phase09SQLite" name="recovery.missing-lock-is-visible-not-repaired"></testcase>
+<testcase classname="Phase09SQLite" name="recovery.conflicting-lock-is-visible-not-replaced"></testcase>
+<testcase classname="Phase09SQLite" name="recovery.completed-excluded-unfinished-stays"></testcase>
+<testcase classname="Phase09SQLite" name="recovery.unknown-state-fails-not-empty"></testcase>
+<testcase classname="Phase09SQLite" name="recovery.page-input-bounds"></testcase>
+<testcase classname="Phase09SQLite" name="retention.one-batch-terminal-history-only"></testcase>
+<testcase classname="Phase09SQLite" name="retention.bad-terminal-flag-does-not-delete-active-state"></testcase>
+<testcase classname="Phase09SQLite" name="retention.completed-counters-survive-history-expiry"></testcase>
+<testcase classname="Phase09SQLite" name="retention.keeps-reconciliation-even-if-terminal-flag-poisoned"></testcase>
+<system-out>assertions=183 mode=TEST_ONLY_PYTHON_BRIDGE</system-out></testsuite>

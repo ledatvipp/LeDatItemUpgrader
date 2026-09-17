@@ -1,0 +1,12 @@
+Baseline ZIP: LeDatItemUpgrader-phase08-source.zip
+Baseline ZIP SHA-256: c568d4512d02e595a049932a9d16d8d1be326c26cc4012c18725b6740be0166c
+Current source version: 0.9.0-phase09a
+Verified date: 2026-09-17
+Javac: javac 21.0.11
+Python: 3.13.5
+Python sqlite3 engine: 3.46.1
+Gradle executable: NOT FOUND
+Platform API artifact at default path: False
+Native preflight: exit 1, Gradle + API missing. No network probe in that script.
+Production JDBC DriverManager branch: NOT RUN, driver unavailable.
+Native Paper/Platform build/server/MySQL/Windows: NOT RUN.

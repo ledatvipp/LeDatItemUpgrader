@@ -1,0 +1,35 @@
+# Phase 6 chỉ mở GUI xem trước; không có config nào ở đây bật giao dịch thật.
+config-version: 1
+enabled: true
+# Hiện chỉ hỗ trợ hai giá trị sau. CUSTODY / DROP / REFUND sẽ bị từ chối khi reload.
+source-mode: 'REFERENCE_ONLY'
+close-behavior: 'DISCARD_SELECTION'
+# Session chứa UUID/context, không giữ Player. Quá giới hạn sẽ từ chối mở menu mới.
+maximum-sessions: 128
+idle-timeout-seconds: 600
+# Pending callback quá hạn làm đóng đúng view cũ, không đóng view mới.
+request-timeout-seconds: 15
+click-cooldown-ms: 150
+open-cooldown-ms: 750
+# Bản preview NBT lớn hơn ngưỡng dùng icon material trong menu, có lore cảnh báo.
+# Backend không dùng icon fallback để xác định target hay phát thưởng.
+maximum-icon-bytes: 32768
+# key rỗng tắt cue. Vanilla registry key được kiểm tra trước khi publish runtime.
+# Custom sound Resource Pack chưa được nhận ở validator này.
+sounds:
+  open:
+    key: 'minecraft:block.ender_chest.open'
+    volume: '0.5'
+    pitch: '1'
+  click:
+    key: 'minecraft:ui.button.click'
+    volume: '0.4'
+    pitch: '1.2'
+  error:
+    key: 'minecraft:block.note_block.bass'
+    volume: '0.4'
+    pitch: '0.8'
+  close:
+    key: ''
+    volume: '0'
+    pitch: '1'

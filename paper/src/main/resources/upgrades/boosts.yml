@@ -1,0 +1,43 @@
+# LeDatItemUpgrader | Phase 3 — Booster/bảo hộ
+# Ví dụ đều TẮT để admin chọn đúng item token và cân bằng chi phí trước khi mở.
+config-version: 1
+boosts:
+  - id: lucky_shard
+    enabled: false
+    exclusive-group: luck
+    allowed-profiles: [standard, risky]
+    chance-multiplier: '1'
+    bonus-percentage-points: '5' # 9% -> 14%, không phải 9% × 1.05.
+    protection: NONE
+    costs:
+      - type: ITEM
+        item: 'minecraft:emerald'
+        amount: '2'
+        consume: ON_ATTEMPT
+    permission: ''
+    conditions: []
+
+  - id: protection_scroll
+    enabled: false
+    exclusive-group: protection
+    allowed-profiles: [standard, risky]
+    chance-multiplier: '1'
+    bonus-percentage-points: '0'
+    protection: KEEP_SOURCE_ON_FAILURE
+    costs:
+      - type: ITEM
+        # THAY bằng custom item token thật trước khi enable; PAPER ở đây chỉ là ví dụ.
+        item: 'minecraft:paper'
+        amount: '1'
+        consume: ON_FAILURE
+    permission: ''
+    conditions: []
+
+# Bảo hộ: thất bại giữ nguồn, tiêu scroll. Thành công tiêu nguồn + nhận target;
+# scroll ON_FAILURE không mất khi thành công. Reserve scroll trước khi biết kết quả
+# là contract Phase 4; Phase 3 chưa lấy item ra khỏi inventory.
+# Không được chọn hai bảo hộ hoặc bảo hộ cho profile đã KEEP; không bỏ booster
+# bị thiếu đồ một cách âm thầm. Quote vẫn hiện bonus đã chọn nhưng trạng thái là thiếu tài nguyên.
+# Hai boost cùng exclusive-group xung đột; group rỗng bỏ giới hạn nhóm (vẫn max-selected).
+# Template custom có stat/UUID ngẫu nhiên có thể không match EXACT_TEMPLATE.
+# Không tự hạ xuống match chỉ Material/ID để ăn nhầm đồ có giá trị.

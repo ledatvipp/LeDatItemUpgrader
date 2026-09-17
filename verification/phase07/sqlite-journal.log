@@ -1,0 +1,23 @@
+test_cas_is_version_and_digest_guarded (__main__.JournalSqlTests.test_cas_is_version_and_digest_guarded) ... ok
+test_claim_atomically_inserts_attempt_lock_event (__main__.JournalSqlTests.test_claim_atomically_inserts_attempt_lock_event) ... ok
+test_close_reopen_keeps_committed_outcome_bytes (__main__.JournalSqlTests.test_close_reopen_keeps_committed_outcome_bytes) ... ok
+test_different_attempt_same_player_rolls_back_new_row (__main__.JournalSqlTests.test_different_attempt_same_player_rolls_back_new_row) ... ok
+test_duplicate_idempotency_no_duplicate_event (__main__.JournalSqlTests.test_duplicate_idempotency_no_duplicate_event) ... ok
+test_event_failure_rolls_back_cas_and_preserves_owner (__main__.JournalSqlTests.test_event_failure_rolls_back_cas_and_preserves_owner) ... ok
+test_event_failure_rolls_back_claim (__main__.JournalSqlTests.test_event_failure_rolls_back_claim) ... ok
+test_original_java_payload_survives_database_round_trip (__main__.JournalSqlTests.test_original_java_payload_survives_database_round_trip) ... ok
+test_process_exit_after_commit_preserves_roll (__main__.JournalSqlTests.test_process_exit_after_commit_preserves_roll) ... ok
+test_process_exit_before_commit_does_not_redraw (__main__.JournalSqlTests.test_process_exit_before_commit_does_not_redraw) ... ok
+test_recovery_page_excludes_terminal_but_not_pending (__main__.JournalSqlTests.test_recovery_page_excludes_terminal_but_not_pending) ... ok
+test_schema_indexes_and_wal (__main__.JournalSqlTests.test_schema_indexes_and_wal) ... ok
+test_terminal_event_state_and_unlock_commit_together (__main__.JournalSqlTests.test_terminal_event_state_and_unlock_commit_together) ... ok
+test_two_connections_compete_for_same_idempotency_key (__main__.JournalSqlTests.test_two_connections_compete_for_same_idempotency_key) ... ok
+test_two_connections_compete_for_same_player (__main__.JournalSqlTests.test_two_connections_compete_for_same_player) ... ok
+
+----------------------------------------------------------------------
+Ran 15 tests in 1.469s
+
+OK
+SQLite library: 3.46.1
+SQL strings exported from Java JournalSql; JDBC/native plugin integration NOT tested.
+RESULT sqlite_tests=15 failures=0 errors=0

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="Phase08SQLiteBridge" tests="31" failures="0" errors="0">
+  <testcase classname="Phase08SQLiteBridge" name="schema.idempotent-version-indexes-wal" time="0.662975"></testcase>
+  <testcase classname="Phase08SQLiteBridge" name="schema.unknown-version-failclosed" time="0.613085"></testcase>
+  <testcase classname="Phase08SQLiteBridge" name="claim.atomic-history-pity-lock-zero-statistics" time="0.625766"></testcase>
+  <testcase classname="Phase08SQLiteBridge" name="claim.stale-pity-rolls-back-all-new-rows" time="0.701331"></testcase>
+  <testcase classname="Phase08SQLiteBridge" name="claim.no-hook-cannot-drop-pity" time="0.639507"></testcase>
+  <testcase classname="Phase08SQLiteBridge" name="claim.duplicate-does-not-duplicate-history" time="0.595643"></testcase>
+  <testcase classname="Phase08SQLiteBridge" name="claim.second-quote-same-player-is-busy" time="0.649589"></testcase>
+  <testcase classname="Phase08SQLiteBridge" name="settlement.history-at-every-cas-win" time="0.714756"></testcase>
+  <testcase classname="Phase08SQLiteBridge" name="settlement.history-at-every-cas-loss" time="0.622680"></testcase>
+  <testcase classname="Phase08SQLiteBridge" name="settlement.repeated-cas-does-not-increment-twice" time="0.630839"></testcase>
+  <testcase classname="Phase08SQLiteBridge" name="settlement.failures-increment-win-resets" time="0.701234"></testcase>
+  <testcase classname="Phase08SQLiteBridge" name="settlement.expired-abort-not-loss-or-pity" time="0.631941"></testcase>
+  <testcase classname="Phase08SQLiteBridge" name="settlement.uncertain-pending-loss-keeps-lock-no-stat" time="0.655210"></testcase>
+  <testcase classname="Phase08SQLiteBridge" name="atomic.hook-error-after-counters-rolls-back-unlock-event-all" time="0.615100"></testcase>
+  <testcase classname="Phase08SQLiteBridge" name="atomic.pity-changed-during-attempt-refuses-completion" time="0.639446"></testcase>
+  <testcase classname="Phase08SQLiteBridge" name="atomic.completion-tombstone-conflict-rolls-back" time="0.671050"></testcase>
+  <testcase classname="Phase08SQLiteBridge" name="atomic.history-predecessor-mismatch-refuses-cas" time="0.631251"></testcase>
+  <testcase classname="Phase08SQLiteBridge" name="atomic.lost-commit-ack-readback-no-double-count" time="0.712621"></testcase>
+  <testcase classname="Phase08SQLiteBridge" name="read.absent-row-zero-but-missing-table-error" time="0.721852"></testcase>
+  <testcase classname="Phase08SQLiteBridge" name="read.malformed-statistics-not-zero" time="0.705001"></testcase>
+  <testcase classname="Phase08SQLiteBridge" name="read.keyset-owner-filter-pagination" time="0.776621"></testcase>
+  <testcase classname="Phase08SQLiteBridge" name="read.corrupt-outcome-does-not-render-success" time="0.619623"></testcase>
+  <testcase classname="Phase08SQLiteBridge" name="retention.bounded-terminal-only-keeps-tombstones" time="0.644147"></testcase>
+  <testcase classname="Phase08SQLiteBridge" name="backfill.history-only-no-stats-pity-or-tombstone" time="0.598752"></testcase>
+  <testcase classname="Phase08SQLiteBridge" name="backfill.never-overwrites-live-newer-projection" time="0.613255"></testcase>
+  <testcase classname="Phase08SQLiteBridge" name="hook.requires-owned-transaction-and-initializer-does-not-nest" time="0.597194"></testcase>
+  <testcase classname="Phase08SQLiteBridge" name="legacy.add-hook-on-next-transition-no-plan-rewrite" time="0.601727"></testcase>
+  <testcase classname="Phase08SQLiteBridge" name="reopen.pity-stats-and-journal-bytes-survive" time="1.209287"></testcase>
+  <testcase classname="Phase08SQLiteBridge" name="concurrency.separate-connections-one-player-one-claim" time="1.294110"></testcase>
+  <testcase classname="Phase08SQLiteBridge" name="process-exit.before-terminal-commit" time="1.680184"></testcase>
+  <testcase classname="Phase08SQLiteBridge" name="process-exit.after-terminal-commit" time="1.802990"></testcase>
+<system-out>assertions=535; real Java repositories and SQLite through test-only bridge; NOT a production JDBC driver</system-out>
+</testsuite>

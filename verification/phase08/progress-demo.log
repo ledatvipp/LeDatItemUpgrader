@@ -1,0 +1,8 @@
+SYNTHETIC PREVIEW failures=0; points=0.00; chance=9%; state=NOT_RESERVED
+SYNTHETIC PREVIEW failures=1; points=1.25; chance=10.25%; state=NOT_RESERVED
+SYNTHETIC PREVIEW failures=4; points=5.00; chance=14%; state=NOT_RESERVED
+SYNTHETIC PREVIEW failures=8; points=10.00; chance=19%; state=NOT_RESERVED
+SYNTHETIC PREVIEW failures=100; points=10; chance=19%; state=NOT_RESERVED
+STALE VERSION: RECONFIRM_REQUIRED; scope=4b190860b164abd3808b14180388416616bdfb60aef94a607cba47e9a969b5e0
+PURE COUNTER MODEL after completed win: version=5; failures=0
+Pity config remains DISABLED in Paper. No transaction or SQL write occurred in this demo.

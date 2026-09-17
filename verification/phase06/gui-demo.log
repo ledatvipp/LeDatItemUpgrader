@@ -1,0 +1,6 @@
+MAIN source=iron x1 value=90; recommended=gold; status=preview
+CATALOG page=1/2; targets=[gold, emerald]
+CATALOG page=2/2; targets=[diamond]
+SELECT diamond: chance=9%; sourceSlot=0
+BOOST lucky_shard: chance=14%; reserve emerald=2
+READ-ONLY: preview is not escrow, RNG outcome, reward or native GUI/server verification.

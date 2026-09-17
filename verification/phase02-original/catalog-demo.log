@@ -1,0 +1,8 @@
+SOURCE minecraft:iron_ingot x1 -> OK; path=iron_progression
+  TARGET gold_ingot; total-value=180
+  TARGET diamond; total-value=900
+SOURCE minecraft:gold_ingot x1 -> OK; path=gold_progression
+  TARGET diamond; total-value=900
+  TARGET diamond_sword; total-value=1800
+SOURCE minecraft:iron_ingot x10 -> NO_TARGETS; path=iron_progression
+Read-only detached demo: no server, inventory, packets, chance, fee, or reward execution.

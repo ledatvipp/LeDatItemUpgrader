@@ -1,0 +1,9 @@
+OFFLINE SIMULATION ONLY -- synthetic item payloads; no player inventory/economy calls.
+DESTROY / WIN -> COMPLETED; retry=DUPLICATE; creations=1; draws=1; prepared-deliveries=1; item=minecraft:diamond_sword; damage=0
+DESTROY / LOSS -> COMPLETED; retry=DUPLICATE; creations=1; draws=1; prepared-deliveries=0
+KEEP / WIN -> COMPLETED; retry=DUPLICATE; creations=1; draws=1; prepared-deliveries=1; item=minecraft:diamond_sword; damage=0
+KEEP / LOSS -> COMPLETED; retry=DUPLICATE; creations=1; draws=1; prepared-deliveries=0
+DAMAGE / WIN -> COMPLETED; retry=DUPLICATE; creations=1; draws=1; prepared-deliveries=1; item=minecraft:diamond_sword; damage=0
+DAMAGE / LOSS -> COMPLETED; retry=DUPLICATE; creations=1; draws=1; prepared-deliveries=1; item=minecraft:iron_sword; damage=90
+DOWNGRADE / WIN -> COMPLETED; retry=DUPLICATE; creations=2; draws=1; prepared-deliveries=1; item=minecraft:diamond_sword; damage=0
+DOWNGRADE / LOSS -> COMPLETED; retry=DUPLICATE; creations=2; draws=1; prepared-deliveries=1; item=minecraft:stone_sword; damage=0

@@ -1,0 +1,133 @@
+def explicitPlatformApiJar = providers.gradleProperty('platformApiJar')
+def ledatCanvasDir = providers.gradleProperty('ledatCanvasDir')
+def defaultPlatformApiJar = rootProject.file('libs/ledat-platform-api-2.10.0.jar').absolutePath
+def windowsHost = System.getProperty('os.name').toLowerCase(Locale.ROOT).contains('windows')
+def sourceApiDirectory = ledatCanvasDir.isPresent()
+        ? new File(ledatCanvasDir.get(), 'ledat-platform-api/build/libs')
+        : null
+def sourceApiFiles = sourceApiDirectory == null ? null : fileTree(sourceApiDirectory) {
+    include '*.jar'
+    exclude '*-sources.jar', '*-javadoc.jar'
+}
+def platformApiFiles = explicitPlatformApiJar.isPresent()
+        ? files(explicitPlatformApiJar.get())
+        : sourceApiFiles ?: files(defaultPlatformApiJar)
+def resolvePlatformApi = {
+    if (explicitPlatformApiJar.isPresent()) return file(explicitPlatformApiJar.get())
+    if (sourceApiDirectory == null) return file(defaultPlatformApiJar)
+    def candidates = sourceApiDirectory.listFiles({ file ->
+        file.isFile() && file.name.endsWith('.jar') && !file.name.endsWith('-sources.jar') && !file.name.endsWith('-javadoc.jar')
+    } as FileFilter)?.toList() ?: []
+    if (candidates.size() != 1)
+        throw new GradleException('Expected exactly one LeDatCanvas API JAR in ' + sourceApiDirectory + ', found ' + candidates*.name)
+    candidates.first()
+}
+
+tasks.register('buildLeDatPlatformApi', Exec) {
+    group = 'build setup'
+    description = 'Rebuilds the LeDatCanvas Platform API with Java 21 when -PledatCanvasDir is supplied.'
+    onlyIf { ledatCanvasDir.isPresent() && !explicitPlatformApiJar.isPresent() }
+    doFirst {
+        def canvas = file(ledatCanvasDir.get())
+        if (!canvas.isDirectory()) throw new GradleException('LeDatCanvas directory does not exist: ' + canvas)
+        def wrapper = new File(canvas, windowsHost ? 'gradlew.bat' : 'gradlew')
+        if (!wrapper.isFile()) throw new GradleException('LeDatCanvas Gradle wrapper is missing: ' + wrapper)
+        workingDir canvas
+        if (windowsHost) {
+            commandLine 'cmd', '/c', wrapper.absolutePath, ':ledat-platform-api:clean', ':ledat-platform-api:jar', '--no-daemon', '--max-workers=1'
+        } else {
+            commandLine wrapper.absolutePath, ':ledat-platform-api:clean', ':ledat-platform-api:jar', '--no-daemon', '--max-workers=1'
+        }
+    }
+}
+
+dependencies {
+    implementation project(':core')
+    compileOnly 'io.papermc.paper:paper-api:1.21.4-R0.1-SNAPSHOT'
+    compileOnly 'org.yaml:snakeyaml:2.2'
+    // Fixed compatibility baseline; no bundled PAPI classes. Uses the String API, not 2.12 Components.
+    compileOnly 'me.clip:placeholderapi:2.11.6'
+    compileOnly platformApiFiles
+}
+tasks.register('verifyPlatformApi') {
+    dependsOn tasks.named('buildLeDatPlatformApi')
+    doLast {
+        def api = resolvePlatformApi()
+        if (!api.isFile()) throw new GradleException(
+            'Missing REAL LeDatPlatform API jar: ' + api +
+            '. Supply -PledatCanvasDir=/absolute/path/to/LeDatCanvas or -PplatformApiJar=/absolute/path/to/ledat-platform-api.jar. ' +
+            'No mock/stub API is allowed for the plugin build. backendCheck tests ONLY core.')
+        // Presence is a structural guard only, not evidence of authenticity, API version or ABI compatibility.
+        try (def archive = new java.util.zip.ZipFile(api)) {
+            for (def entry : ['vn/ledat/platform/api/LeDatPlatformApi.class',
+                             'vn/ledat/platform/api/LeDatPlatformProvider.class']) {
+                if (archive.getEntry(entry) == null)
+                    throw new GradleException('Wrong API artifact: missing public class ' + entry)
+            }
+            def apiClass = archive.getEntry('vn/ledat/platform/api/LeDatPlatformApi.class')
+            def header = archive.getInputStream(apiClass).readNBytes(8)
+            if (header.length != 8 || header[0..3] != [(byte) 0xCA, (byte) 0xFE, (byte) 0xBA, (byte) 0xBE])
+                throw new GradleException('Wrong API artifact: invalid class header for LeDatPlatformApi')
+            int majorVersion = ((header[6] & 0xFF) << 8) | (header[7] & 0xFF)
+            if (majorVersion != 65)
+                throw new GradleException('LeDatPlatform API must target Java 21 (class version 65), but ' + api + ' is class version ' + majorVersion + '. Rebuild LeDatCanvas with JDK 21.')
+        }
+
+    }
+}
+tasks.register('generateDefaultMessages') {
+    def source = file('src/main/resources/messages.yml')
+    def outDir = layout.buildDirectory.dir('generated/sources/messages')
+    inputs.file(source)
+    outputs.dir(outDir)
+    doLast {
+        def escape = { s -> s.replace('\\','\\\\').replace('"','\\"').replace('\t','\\t') }
+        def entries = []
+        def keys = []
+        source.eachLine('UTF-8') { line ->
+            def m = line =~ /^([a-z][a-z0-9-]*): '((?:[^']|'')*)'$/
+            if (m.matches()) keys << m[0][1]
+            if (m.matches()) entries << '        Map.entry("' + escape(m[0][1]) + '", "' + escape(m[0][2].replace("''", "'")) + '")'
+        }
+        if (!keys.containsAll(['prefix', 'missing-message', 'no-permission', 'player-only', 'reload-failed']))
+            throw new GradleException('Bundled messages.yml format invalid; expected single-quoted one-line message strings.')
+        if (keys.toSet().size() != keys.size()) throw new GradleException('Duplicate bundled message key')
+        def target = outDir.get().file('vn/ledat/itemupgrader/paper/message/DefaultMessages.java').asFile
+        target.parentFile.mkdirs()
+        target.setText('package vn.ledat.itemupgrader.paper.message;\nimport java.util.Map;\n' +
+            '// Generated from messages.yml. Do not edit.\npublic final class DefaultMessages {\n' +
+            '    private DefaultMessages() {}\n    public static final Map<String, String> ALL = Map.ofEntries(\n' +
+            entries.join(',\n') + '\n    );\n}\n', 'UTF-8')
+    }
+}
+sourceSets.main.java.srcDir(layout.buildDirectory.dir('generated/sources/messages'))
+tasks.named('compileJava') { dependsOn verifyPlatformApi, generateDefaultMessages }
+tasks.named('processResources') {
+    inputs.property('pluginVersion', project.version)
+    filesMatching('plugin.yml') { expand(pluginVersion: project.version) }
+}
+tasks.named('jar') {
+    dependsOn ':core:classes'
+    archiveBaseName = 'LeDatItemUpgrader'
+    from(project(':core').sourceSets.main.output)
+    exclude 'vn/ledat/itemupgrader/demo/**' // Never ship the in-memory simulation as a live plugin backend.
+    duplicatesStrategy = DuplicatesStrategy.FAIL
+    // Only our core is included. Never bundle Paper, LeDatPlatform or its integration jars.
+}
+tasks.register('verifyReleaseJar') {
+    group = 'verification'
+    description = 'Verifies the ItemUpgrader release JAR keeps LeDatPlatform as a server dependency.'
+    dependsOn tasks.named('jar')
+    doLast {
+        def release = tasks.named('jar').get().archiveFile.get().asFile
+        try (def archive = new java.util.zip.ZipFile(release)) {
+            def entries = archive.entries().collect { it.name }
+            if (entries.any { it.startsWith('vn/ledat/platform/') })
+                throw new GradleException(release.name + ' must not bundle LeDatPlatform API or implementation classes')
+            def pluginYml = archive.getInputStream(archive.getEntry('plugin.yml')).getText('UTF-8')
+            if (!pluginYml.contains('depend: [LeDatPlatform]'))
+                throw new GradleException(release.name + ' must retain depend: [LeDatPlatform] in plugin.yml')
+        }
+    }
+}
+tasks.named('build') { dependsOn tasks.named('verifyReleaseJar') }

@@ -1,0 +1,172 @@
+# Phase 6: native inventory PREVIEW, không nhận custody của item thật.
+# SOURCE_INPUT là role tương thích blueprint cũ; runtime REFERENCE_ONLY chỉ CHỌN slot.
+# Không kéo/thả item vào GUI. Mọi item phía trên là bản hiển thị bị khóa.
+# Matrix 1..6 hàng, mỗi hàng 9 ký tự. Role/action mới được validate khi reload.
+# Các slot RP vẫn là lưới inventory 18px; item-model/CMD/title glyph chỉ thay presentation.
+# File đang tồn tại trên server được giữ nguyên; xem docs/PHASE06.md để merge layout mới.
+config-version: 1
+id: 'upgrader'
+title: '<dark_gray>Item Upgrader</dark_gray>'
+matrix:
+  - '#########'
+  - '#S##C##T#'
+  - '#########'
+  - '#123#IBP#'
+  - '####U##R#'
+  - '####X####'
+symbols:
+  '#':
+    role: 'FILLER'
+    material: 'BLACK_STAINED_GLASS_PANE'
+    name: ' '
+    lore: []
+    item-model: ''
+    glow: false
+    action: 'NONE'
+    argument: ''
+    # custom-model-data: 10001  # Tùy chọn; ưu tiên item-model cho pack hiện đại.
+  'S':
+    role: 'SOURCE_INPUT'
+    material: 'HOPPER'
+    name: '<yellow>Nguồn: {source}</yellow>'
+    lore:
+      - '<gray>Storage slot: {source_slot} | Số lượng: {amount}</gray>'
+      - '<gray>Click trái: chọn item đang cầm.</gray>'
+      - '<gray>Click phải: bỏ chọn, không xóa item.</gray>'
+      - '<gray>Hoặc click item trong túi phía dưới.</gray>'
+      - '<gold>Item thật luôn nằm trong túi của bạn.</gold>'
+    item-model: ''
+    glow: false
+    action: 'SOURCE_INPUT'
+    argument: ''
+    # custom-model-data: 10001  # Tùy chọn; ưu tiên item-model cho pack hiện đại.
+  'T':
+    role: 'TARGET'
+    material: 'PAPER'
+    name: '<aqua>Target: {target}</aqua>'
+    lore:
+      - '<gray>Value: {target_value}</gray>'
+      - '<gray>Click để mở catalog được phép.</gray>'
+    item-model: ''
+    glow: false
+    action: 'OPEN_CATALOG'
+    argument: ''
+    # custom-model-data: 10001  # Tùy chọn; ưu tiên item-model cho pack hiện đại.
+  'C':
+    role: 'CHANCE'
+    material: 'CLOCK'
+    name: '<gold>Tỷ lệ preview: {chance}</gold>'
+    lore:
+      - '<gray>Source value: {source_value}</gray>'
+      - '<gray>Target value: {target_value}</gray>'
+      - '<yellow>{status}</yellow>'
+    item-model: ''
+    glow: false
+    action: 'NONE'
+    argument: ''
+    # custom-model-data: 10001  # Tùy chọn; ưu tiên item-model cho pack hiện đại.
+  'I':
+    role: 'INFO'
+    material: 'BOOK'
+    name: '<white>Chi tiết quote</white>'
+    lore:
+      - '<gray>Profile: {profile}</gray>'
+      - '<gray>Boosts: {boosts}</gray>'
+      - '<gray>Failure: {failure}</gray>'
+      - '<yellow>{status}</yellow>'
+      - '<gray>Cần có trước: {fee}</gray>'
+    item-model: ''
+    glow: false
+    action: 'NONE'
+    argument: ''
+    # custom-model-data: 10001  # Tùy chọn; ưu tiên item-model cho pack hiện đại.
+  '1':
+    role: 'BUTTON'
+    material: 'LIME_DYE'
+    name: '<green>Standard</green>'
+    lore:
+      - '<gray>Trạng thái: {selected}</gray>'
+    item-model: ''
+    glow: false
+    action: 'SELECT_PROFILE'
+    argument: 'standard'
+    # custom-model-data: 10001  # Tùy chọn; ưu tiên item-model cho pack hiện đại.
+  '2':
+    role: 'BUTTON'
+    material: 'LIGHT_BLUE_DYE'
+    name: '<aqua>Safe</aqua>'
+    lore:
+      - '<gray>Trạng thái: {selected}</gray>'
+    item-model: ''
+    glow: false
+    action: 'SELECT_PROFILE'
+    argument: 'safe'
+    # custom-model-data: 10001  # Tùy chọn; ưu tiên item-model cho pack hiện đại.
+  '3':
+    role: 'BUTTON'
+    material: 'RED_DYE'
+    name: '<red>Risky</red>'
+    lore:
+      - '<gray>Trạng thái: {selected}</gray>'
+    item-model: ''
+    glow: false
+    action: 'SELECT_PROFILE'
+    argument: 'risky'
+    # custom-model-data: 10001  # Tùy chọn; ưu tiên item-model cho pack hiện đại.
+  'B':
+    role: 'BUTTON'
+    material: 'BLAZE_POWDER'
+    name: '<gold>Booster / Bảo hộ</gold>'
+    lore:
+      - '<gray>Đã chọn: {boosts}</gray>'
+    item-model: ''
+    glow: false
+    action: 'OPEN_BOOSTS'
+    argument: ''
+    # custom-model-data: 10001  # Tùy chọn; ưu tiên item-model cho pack hiện đại.
+  'P':
+    role: 'BUTTON'
+    material: 'COMPASS'
+    name: '<aqua>Tất cả profiles</aqua>'
+    lore:
+      - '<gray>Chỉ hiện profile đủ điều kiện.</gray>'
+    item-model: ''
+    glow: false
+    action: 'OPEN_PROFILES'
+    argument: ''
+    # custom-model-data: 10001  # Tùy chọn; ưu tiên item-model cho pack hiện đại.
+  'U':
+    role: 'BUTTON'
+    material: 'ANVIL'
+    name: '<gold>Nâng cấp — đang khóa giao dịch</gold>'
+    lore:
+      - '<yellow>{status}</yellow>'
+      - '<gray>Tỷ lệ preview: {chance}</gray>'
+      - '<gray>Phase 6 chưa tiêu hao hay phát item.</gray>'
+    item-model: ''
+    glow: false
+    action: 'UPGRADE'
+    argument: ''
+    # custom-model-data: 10001  # Tùy chọn; ưu tiên item-model cho pack hiện đại.
+  'R':
+    role: 'BUTTON'
+    material: 'SUNFLOWER'
+    name: '<yellow>Làm mới preview</yellow>'
+    lore:
+      - '<gray>Tính lại bằng item và quyền hiện tại.</gray>'
+    item-model: ''
+    glow: false
+    action: 'REFRESH'
+    argument: ''
+    # custom-model-data: 10001  # Tùy chọn; ưu tiên item-model cho pack hiện đại.
+  'X':
+    role: 'BUTTON'
+    material: 'BARRIER'
+    name: '<red>Đóng</red>'
+    lore:
+      - '<gray>Chỉ bỏ selection, không cần hoàn item.</gray>'
+    item-model: ''
+    glow: false
+    action: 'CLOSE'
+    argument: ''
+    # custom-model-data: 10001  # Tùy chọn; ưu tiên item-model cho pack hiện đại.

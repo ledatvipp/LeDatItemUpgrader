@@ -1,0 +1,2 @@
+PASS legacy v2 hashes: 4 pinned plans + 126 record/state pairs match actual Phase07 baseline
+Fixture bytes/hashes only, not native migration or provider metadata validation.

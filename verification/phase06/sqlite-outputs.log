@@ -1,0 +1,19 @@
+test_ambiguous_tombstone_is_not_expiring_lease (__main__.OutputSqlTests.test_ambiguous_tombstone_is_not_expiring_lease) ... ok
+test_cas_binds_player_digest_and_created_time (__main__.OutputSqlTests.test_cas_binds_player_digest_and_created_time) ... ok
+test_claim_stores_preparing_not_entitlement (__main__.OutputSqlTests.test_claim_stores_preparing_not_entitlement) ... ok
+test_close_reopen_preserves_candidates_and_identity (__main__.OutputSqlTests.test_close_reopen_preserves_candidates_and_identity) ... ok
+test_duplicate_claim_does_not_overwrite_ready (__main__.OutputSqlTests.test_duplicate_claim_does_not_overwrite_ready) ... ok
+test_identity_collision_rolls_back_ready (__main__.OutputSqlTests.test_identity_collision_rolls_back_ready) ... ok
+test_payload_java_round_trip_after_database (__main__.OutputSqlTests.test_payload_java_round_trip_after_database) ... ok
+test_process_exit_after_ready_commit_preserves_exact_output (__main__.OutputSqlTests.test_process_exit_after_ready_commit_preserves_exact_output) ... ok
+test_process_exit_before_ready_commit_preserves_pending (__main__.OutputSqlTests.test_process_exit_before_ready_commit_preserves_pending) ... ok
+test_ready_and_identity_commit_together (__main__.OutputSqlTests.test_ready_and_identity_commit_together) ... ok
+test_schema_has_primary_keys_and_wal (__main__.OutputSqlTests.test_schema_has_primary_keys_and_wal) ... ok
+test_terminal_states_cannot_be_replaced (__main__.OutputSqlTests.test_terminal_states_cannot_be_replaced) ... ok
+test_two_connections_only_one_claim (__main__.OutputSqlTests.test_two_connections_only_one_claim) ... ok
+test_two_connections_only_one_finish (__main__.OutputSqlTests.test_two_connections_only_one_finish) ... ok
+
+----------------------------------------------------------------------
+Ran 14 tests in 1.353s
+
+OK

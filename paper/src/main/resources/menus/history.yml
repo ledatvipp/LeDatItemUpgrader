@@ -1,0 +1,85 @@
+# LeDatItemUpgrader | Phase 8 — Inventory history, server-held keyset pagination
+# E = dòng history chỉ đọc (role INFO). Không đưa item thật/NBT/provider UUID vào icon.
+# Không có /claim hoặc nút nhận item ở đây. WIN chưa đồng nghĩa settlement COMPLETED.
+# Date hiển thị ISO-8601 UTC, không giả timestamp timezone server/client.
+# INFO slots quyết định page size (mặc định 28). Đổi title/glyph/model không đổi backend.
+config-version: 1
+id: history
+title: '<dark_gray>Lịch sử nâng cấp</dark_gray>'
+matrix:
+  - '#########'
+  - '#EEEEEEE#'
+  - '#EEEEEEE#'
+  - '#EEEEEEE#'
+  - '#EEEEEEE#'
+  - '#P#R#N#X#'
+symbols:
+  '#':
+    role: FILLER
+    material: BLACK_STAINED_GLASS_PANE
+    name: ' '
+    lore: []
+    item-model: ''
+    custom-model-data: 0
+    glow: false
+    action: NONE
+    argument: ''
+  'E':
+    role: INFO
+    material: BOOK
+    name: '<gold>{source} <gray>→</gray> {target}</gold>'
+    lore:
+      - '<gray>Nguồn: <white>{source_amount} × {source}</white></gray>'
+      - '<gray>Đích: <white>{target_amount} × {target}</white></gray>'
+      - '<gray>Xác suất đã chốt: <yellow>{chance}%</yellow></gray>'
+      - '<gray>Profile: <white>{profile}</white></gray>'
+      - '<gray>Kết quả: <white>{outcome}</white></gray>'
+      - '<gray>Xử lý: <white>{state}</white></gray>'
+      - '<gray>Tạo: <white>{created_at}</white></gray>'
+      - '<dark_gray>TX: {transaction}</dark_gray>'
+      - '<yellow>Lịch sử chỉ đọc, không phải nút nhận thưởng.</yellow>'
+    item-model: ''
+    custom-model-data: 0
+    glow: false
+    action: NONE
+    argument: ''
+  'P':
+    role: BUTTON
+    material: ARROW
+    name: '<yellow>Trang trước</yellow>'
+    lore: ['<gray>Trang hiện tại: {page}</gray>']
+    item-model: ''
+    custom-model-data: 0
+    glow: false
+    action: PREVIOUS_PAGE
+    argument: ''
+  'R':
+    role: BUTTON
+    material: CLOCK
+    name: '<aqua>Làm mới</aqua>'
+    lore: ['<gray>{status}</gray>', '<gray>Bộ lọc: {filter}</gray>', '<gray>Làm mới sẽ trở về trang đầu.</gray>']
+    item-model: ''
+    custom-model-data: 0
+    glow: false
+    action: REFRESH
+    argument: ''
+  'N':
+    role: BUTTON
+    material: ARROW
+    name: '<yellow>Trang tiếp</yellow>'
+    lore: ['<gray>Trang hiện tại: {page}</gray>']
+    item-model: ''
+    custom-model-data: 0
+    glow: false
+    action: NEXT_PAGE
+    argument: ''
+  'X':
+    role: BUTTON
+    material: BARRIER
+    name: '<red>Đóng</red>'
+    lore: ['<gray>Đóng menu không thay đổi giao dịch.</gray>']
+    item-model: ''
+    custom-model-data: 0
+    glow: false
+    action: CLOSE
+    argument: ''

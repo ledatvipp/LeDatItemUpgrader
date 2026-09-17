@@ -1,0 +1,15 @@
+Environment observation from this delivery session:
+java -version: OpenJDK 21.0.11
+Gradle distribution/cache not available in this container.
+No LeDatPlatform API jar/source was present among the uploaded files.
+
+Dependency access attempts:
+curl https://downloads.gradle.org/distributions/gradle-8.14.3-bin.zip
+  curl: (6) Could not resolve host: downloads.gradle.org
+curl https://repo.maven.apache.org/maven2/org/junit/jupiter/junit-jupiter/5.12.2/junit-jupiter-5.12.2.pom
+  curl: (6) Could not resolve host: repo.maven.apache.org
+curl https://repo.papermc.io/repository/maven-public/io/papermc/paper/paper-api/1.21.4-R0.1-SNAPSHOT/maven-metadata.xml
+  curl: (6) Could not resolve host: repo.papermc.io
+
+Therefore no claim of Gradle/Paper/Platform build success is made.
+Core was instead compiled/tested directly with the installed JDK. JUnit was not used.

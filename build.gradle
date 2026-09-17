@@ -1,0 +1,29 @@
+plugins { id 'base' }
+allprojects {
+    group = 'vn.ledat.itemupgrader'
+    version = '0.9.0-phase09a'
+    repositories {
+        mavenCentral()
+        maven { url = uri('https://repo.helpch.at/releases/') }
+        maven { url = uri('https://repo.papermc.io/repository/maven-public/') }
+    }
+}
+subprojects {
+    apply plugin: 'java-library'
+    java { toolchain { languageVersion = JavaLanguageVersion.of(21) } }
+    tasks.withType(JavaCompile).configureEach {
+        options.encoding = 'UTF-8'
+        options.release = 21
+        options.compilerArgs += ['-Xlint:all']
+    }
+    tasks.withType(Jar).configureEach {
+        preserveFileTimestamps = false
+        reproducibleFileOrder = true
+    }
+}
+tasks.register('backendCheck') {
+    group = 'verification'
+    description = 'Compiles and tests dependency-free backend only; NOT a plugin build.'
+    dependsOn ':core:check'
+}
+tasks.named('build') { dependsOn ':core:build', ':paper:build' }

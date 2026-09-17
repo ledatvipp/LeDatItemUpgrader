@@ -1,0 +1,19 @@
+# LeDatItemUpgrader | Phase 3 — Typed PlaceholderAPI conditions
+config-version: 1
+conditions: []
+# Ví dụ (cần expansion player hoạt động):
+# - id: level_30
+#   placeholder: '%player_level%'
+#   type: NUMBER
+#   operator: GE
+#   value: '30'
+# Sau đó thêm conditions: [level_30] vào target/path/profile/boost/permission bonus.
+# Tham chiếu ID không có ở file này -> reject toàn bộ reload, giữ runtime cũ.
+# NUMBER: EQ, NE, GT, GE, LT, LE. TEXT và BOOLEAN: EQ, NE; TEXT phân biệt hoa/thường.
+# NUMBER nhận số âm/thập phân dấu chấm, không nhận 1,000 / 1e3 / NaN / color tags.
+# BOOLEAN chỉ 'true' hoặc 'false'. Không hỗ trợ expression, regex, relational hoặc JS.
+# Thiếu PAPI/expansion, output còn %placeholder%, lỗi, output >256 ký tự -> DENY,
+# kể cả NE (không cho placeholder chưa resolve vô tình vượt điều kiện).
+# Tối đa 32 định nghĩa. Mỗi capture de-duplicate placeholder, tổng 5ms GIỮA các call.
+# Budget không ngắt được một expansion block bên trong call; cần kiểm tra expansion trên staging.
+# PAPI chạy owner/main thread, dữ liệu kết quả không parse MiniMessage, không log raw.

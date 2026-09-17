@@ -1,0 +1,62 @@
+name: LeDatItemUpgrader
+version: '${pluginVersion}'
+main: vn.ledat.itemupgrader.paper.LeDatItemUpgraderPlugin
+api-version: '1.21.4'
+authors: [LeDat]
+description: 'Item Upgrader - Phase 0-9A: inventory and admin animation preview, live transaction adapters still gated'
+depend: [LeDatPlatform]
+softdepend: [PlaceholderAPI]
+# Không khai báo Folia support: source này nhắm Paper main-thread model.
+commands:
+  upgrader:
+    description: 'Menu xem trước Item Upgrader và command quản trị'
+    usage: '/upgrader help'
+    aliases: [itemupgrader]
+    # Permission kiểm tra ở command adapter để no-permission luôn lấy từ messages.yml.
+permissions:
+  ledatitemupgrader.use:
+    default: true
+  ledatitemupgrader.admin:
+    default: op
+    children:
+      ledatitemupgrader.use: true
+      ledatitemupgrader.history: true
+      ledatitemupgrader.admin.history: true
+      ledatitemupgrader.admin.diagnostics: true
+      ledatitemupgrader.admin.storage: true
+      ledatitemupgrader.admin.status: true
+      ledatitemupgrader.admin.value: true
+      ledatitemupgrader.admin.inspect: true
+      ledatitemupgrader.admin.reload: true
+      ledatitemupgrader.admin.catalog: true
+      ledatitemupgrader.admin.quote: true
+      ledatitemupgrader.admin.animation: true
+  ledatitemupgrader.admin.status:
+    default: op
+  ledatitemupgrader.admin.value:
+    default: op
+  ledatitemupgrader.admin.inspect:
+    default: op
+  ledatitemupgrader.admin.reload:
+    default: op
+
+  ledatitemupgrader.admin.catalog:
+    default: op
+
+  ledatitemupgrader.admin.quote:
+    default: op
+  ledatitemupgrader.bonus.vip:
+    default: false
+
+  ledatitemupgrader.admin.animation:
+    default: op
+
+  ledatitemupgrader.history:
+    default: true
+  ledatitemupgrader.admin.history:
+    default: op
+  ledatitemupgrader.admin.diagnostics:
+    default: op
+
+  ledatitemupgrader.admin.storage:
+    default: op

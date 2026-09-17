@@ -1,0 +1,54 @@
+# LeDatItemUpgrader | Phase 3 — Xác suất và quote (chưa roll/trừ phí)
+# Tất cả số thập phân phải có nháy. Ratio '0.1' = 1/10, percent '9' = 9%.
+# bonus-percentage-points: '5' biến 9% -> 14%; chance-multiplier: '1.05' biến 9% -> 9.45%.
+config-version: 1
+default-profile: standard
+minimum-percent: '0.1'
+maximum-percent: '90'
+maximum-selected-boosts: 4
+quote-lifetime-seconds: 30
+# KEEP/bảo hộ mà không mất gì khi thất bại -> có thể thử vô hạn miễn phí.
+# Mặc định chặn. Chỉ true khi admin thật sự muốn gameplay đó.
+allow-free-protection: false
+
+# Core tính phân số chính xác, không dùng double/script; cuối cùng lượng tử hóa ra
+# 1.000.000.000 vé. Min làm tròn lên lưới, max làm tròn xuống lưới; khoảng rỗng bị reject.
+# Preview chưa tạo số random. Phase 4 phải dùng cùng winningTickets với sample [0,1e9).
+formulas:
+  - id: ratio
+    type: RATIO
+    multiplier: '0.90'
+  - id: squared
+    type: POWER
+    multiplier: '0.90'
+    exponent: 2 # Chỉ số nguyên 1..8; không nhận biểu thức/pow tùy ý.
+  - id: manual_table
+    type: TABLE
+    # Ngưỡng thấp bao gồm chính nó; cần ratio 0, tăng nghiêm ngặt và chance không giảm.
+    points:
+      - {ratio: '0', percent: '0'}
+      - {ratio: '0.10', percent: '9'}
+      - {ratio: '0.25', percent: '20'}
+      - {ratio: '0.50', percent: '45'}
+      - {ratio: '0.75', percent: '70'}
+  - id: smooth_curve
+    type: CURVE
+    # Nội suy tuyến tính từng đoạn. Cần đủ đầu 0 và cuối 1.
+    points:
+      - {ratio: '0', percent: '0'}
+      - {ratio: '0.25', percent: '20'}
+      - {ratio: '1', percent: '90'}
+
+# Trong mỗi group: chọn priority lớn nhất mà người chơi có quyền/condition.
+# Hai bonus enabled trong cùng group không được trùng priority; group khác mới stack.
+# Thứ tự: formula -> profile -> tích permission multipliers -> tổng permission points
+# -> tích boost multipliers -> tổng boost points -> clamp -> ticket grid.
+permission-bonuses:
+  - id: vip
+    enabled: false
+    group: rank
+    priority: 10
+    permission: 'ledatitemupgrader.bonus.vip'
+    conditions: []
+    chance-multiplier: '1.05'
+    bonus-percentage-points: '0'

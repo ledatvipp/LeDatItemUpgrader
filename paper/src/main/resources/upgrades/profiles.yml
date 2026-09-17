@@ -1,0 +1,59 @@
+# LeDatItemUpgrader | Phase 3 — Risk profile và yêu cầu phí
+config-version: 1
+
+profiles:
+  - id: standard
+    enabled: true
+    formula: ratio
+    chance-multiplier: '1'
+    fee-multiplier: '1'
+    failure: DESTROY
+    costs: [] # Chỉ nguồn; chưa có code consume tại Phase 3.
+    permission: ''
+    conditions: []
+
+  - id: safe
+    enabled: true
+    formula: ratio
+    chance-multiplier: '0.60'
+    fee-multiplier: '1.75'
+    failure: KEEP
+    costs:
+      - type: CURRENCY
+        currency: VAULT
+        amount: '25.00' # Sau hệ số 1.75 là 43.75; thiếu provider -> unavailable.
+        consume: ON_ATTEMPT
+    permission: ''
+    conditions: []
+
+  - id: risky
+    enabled: true
+    formula: ratio
+    chance-multiplier: '1.30'
+    fee-multiplier: '0.75'
+    failure: DESTROY
+    costs:
+      - type: CURRENCY
+        currency: VAULT
+        amount: '10.00'
+        consume: ON_ATTEMPT
+    permission: ''
+    conditions: []
+
+# Override profile theo path đã được chọn ở paths.yml. Không khai báo = dùng default
+# và cho mọi profile enabled đủ quyền. Không fallback khi default profile bị denied.
+path-profile-rules: []
+# - path: iron_progression
+#   allowed-profiles: [standard, risky]
+#   default-profile: standard
+
+# Cost ITEM: type: ITEM, item: 'minecraft:emerald', amount: '2', consume: ON_ATTEMPT.
+# Cost PlayerPoints: type: CURRENCY, currency: PLAYERPOINTS, amount: '5', consume: ON_ATTEMPT.
+# ON_ATTEMPT: mất ở cả hai kết quả. ON_SUCCESS: chỉ thành công. ON_FAILURE: chỉ thất bại.
+# Giữ trước cho mỗi resource = ON_ATTEMPT + max(ON_SUCCESS, ON_FAILURE).
+# Tổng hợp từng resource/thời điểm trước khi làm tròn CEILING; currency Vault 2 chữ số,
+# PlayerPoints/item số nguyên. fee-multiplier chỉ áp phí profile, không nhân giá booster.
+# PlayerPoints raw phải nguyên và <= 2147483647; Vault cap 1e12; item cap 65536.
+# Item fee chỉ khớp template chính xác (isSimilar + identity); không ăn đồ enchanted,
+# renamed/PDC khác template. Nguồn/tay phụ/armor/cursor không dùng trả phí.
+# DAMAGE/DOWNGRADE/transfer được cấu hình trong outputs.yml; các mẫu không tự gắn vào profile. Giao dịch native vẫn khóa.

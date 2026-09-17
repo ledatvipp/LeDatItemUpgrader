@@ -1,0 +1,2 @@
+PASS supplemental resource checks=276, YAML files=8, PyYAML=6.0.3
+Not a substitute for SnakeYAML/Adventure/Paper runtime validation.

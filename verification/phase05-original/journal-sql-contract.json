@@ -1,0 +1,31 @@
+{
+  "sqlite-ddl": [
+    "CREATE TABLE IF NOT EXISTS iup_tx_schema (component VARCHAR(32) PRIMARY KEY,version INTEGER NOT NULL,updated_at BIGINT NOT NULL)",
+    "CREATE TABLE IF NOT EXISTS iup_attempts (tx_id VARCHAR(36) PRIMARY KEY,idempotency_key VARCHAR(128) NOT NULL UNIQUE,player_uuid VARCHAR(36) NOT NULL,plan_digest VARCHAR(64) NOT NULL,plan_payload BLOB NOT NULL,state VARCHAR(32) NOT NULL,version BIGINT NOT NULL,created_at BIGINT NOT NULL,updated_at BIGINT NOT NULL,sample BIGINT,payload BLOB NOT NULL,payload_digest VARCHAR(64) NOT NULL)",
+    "CREATE TABLE IF NOT EXISTS iup_player_locks (player_uuid VARCHAR(36) PRIMARY KEY,tx_id VARCHAR(36) NOT NULL UNIQUE)",
+    "CREATE TABLE IF NOT EXISTS iup_tx_events (tx_id VARCHAR(36) NOT NULL,version BIGINT NOT NULL,state VARCHAR(32) NOT NULL,created_at BIGINT NOT NULL,payload_digest VARCHAR(64) NOT NULL,PRIMARY KEY(tx_id,version))"
+  ],
+  "mysql-ddl": [
+    "CREATE TABLE IF NOT EXISTS iup_tx_schema (component VARCHAR(32) PRIMARY KEY,version INTEGER NOT NULL,updated_at BIGINT NOT NULL) ENGINE=InnoDB",
+    "CREATE TABLE IF NOT EXISTS iup_attempts (tx_id VARCHAR(36) PRIMARY KEY,idempotency_key VARCHAR(128) NOT NULL UNIQUE,player_uuid VARCHAR(36) NOT NULL,plan_digest VARCHAR(64) NOT NULL,plan_payload LONGBLOB NOT NULL,state VARCHAR(32) NOT NULL,version BIGINT NOT NULL,created_at BIGINT NOT NULL,updated_at BIGINT NOT NULL,sample BIGINT,payload LONGBLOB NOT NULL,payload_digest VARCHAR(64) NOT NULL) ENGINE=InnoDB",
+    "CREATE TABLE IF NOT EXISTS iup_player_locks (player_uuid VARCHAR(36) PRIMARY KEY,tx_id VARCHAR(36) NOT NULL UNIQUE) ENGINE=InnoDB",
+    "CREATE TABLE IF NOT EXISTS iup_tx_events (tx_id VARCHAR(36) NOT NULL,version BIGINT NOT NULL,state VARCHAR(32) NOT NULL,created_at BIGINT NOT NULL,payload_digest VARCHAR(64) NOT NULL,PRIMARY KEY(tx_id,version)) ENGINE=InnoDB"
+  ],
+  "indexes": [
+    "CREATE INDEX iup_attempts_player_time ON iup_attempts (player_uuid,created_at,tx_id)",
+    "CREATE INDEX iup_attempts_state_time ON iup_attempts (state,updated_at,tx_id)"
+  ],
+  "queries": {
+    "insert-attempt": "INSERT INTO iup_attempts (tx_id,idempotency_key,player_uuid,plan_digest,plan_payload,state,version,created_at,updated_at,sample,payload,payload_digest) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+    "insert-lock": "INSERT INTO iup_player_locks (player_uuid,tx_id) VALUES (?,?)",
+    "insert-event": "INSERT INTO iup_tx_events (tx_id,version,state,created_at,payload_digest) VALUES (?,?,?,?,?)",
+    "update": "UPDATE iup_attempts SET state=?,version=?,updated_at=?,sample=?,payload=?,payload_digest=? WHERE tx_id=? AND version=? AND payload_digest=? AND plan_digest=?",
+    "unlock": "DELETE FROM iup_player_locks WHERE player_uuid=? AND tx_id=?",
+    "active": "SELECT tx_id FROM iup_player_locks WHERE player_uuid=?",
+    "find": "SELECT * FROM iup_attempts WHERE tx_id=?",
+    "find-by-key": "SELECT * FROM iup_attempts WHERE idempotency_key=?",
+    "unfinished": "SELECT * FROM iup_attempts WHERE state NOT IN ('COMPLETED','ABORTED') AND tx_id>? ORDER BY tx_id ASC LIMIT ?",
+    "schema-version": "SELECT version FROM iup_tx_schema WHERE component=?",
+    "insert-version": "INSERT INTO iup_tx_schema (component,version,updated_at) VALUES (?,?,?)"
+  }
+}

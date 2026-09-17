@@ -1,0 +1,2 @@
+PASS legacy v1 exact bytes/digests: 18 history records + 1 competitor fixture
+Plan/state byte compatibility only; no automatic native reward/recovery migration.

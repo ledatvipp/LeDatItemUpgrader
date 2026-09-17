@@ -1,0 +1,19 @@
+# Whitelist conversion để thử RecipeValueResolver, KHÔNG tự import toàn bộ recipe registry.
+# Admin cần kiểm tra các đường craft rẻ hơn; hệ thống chưa chứng minh chống arbitrage toàn server.
+# Recipe container/remainders/special recipe/custom stat chưa được tự hỗ trợ.
+# Output chia đúng output-amount. Mọi alternative khai báo đều phải có giá; thiếu một -> bỏ recipe đó.
+# Cycle bị bỏ qua; budget vượt -> fail-closed, không vòng lặp vô hạn.
+config-version: 1
+recipes:
+  - id: 'ledat:iron_block'
+    result: 'minecraft:iron_block'
+    output-amount: 1
+    ingredients:
+      - alternatives: ['minecraft:iron_ingot']
+        amount: 9
+  - id: 'ledat:gold_block'
+    result: 'minecraft:gold_block'
+    output-amount: 1
+    ingredients:
+      - alternatives: ['minecraft:gold_ingot']
+        amount: 9

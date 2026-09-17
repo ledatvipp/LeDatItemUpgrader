@@ -1,0 +1,76 @@
+# LeDatItemUpgrader | Phase 2 — Target catalog
+# Đây là danh sách template đích được phép xem xét, KHÔNG phải giá trị item.
+# Giá vẫn lấy duy nhất từ values.yml + recipe/modifier. Không thêm field value ở đây.
+# Mọi target phải tạo được template thật, identify đúng key, số lượng hợp lệ và có giá.
+# Thiếu provider/item/giá -> loại target, không tạo diamond hoặc PAPER giả thay reward.
+config-version: 1
+
+settings:
+  # So sánh TỔNG target / TỔNG source. '2' là giá gấp đôi, không phải 2% chance.
+  # Target cùng key source, hoặc không đắt hơn source, luôn bị loại trong Phase 2.
+  minimum-ratio: '1.25'
+  maximum-ratio: '12'
+  # Khi không có thứ tự path, ưu tiên target có giá gần tổng source × hệ số này.
+  preferred-ratio: '2'
+  # Command preview hiển thị phân trang; GUI sẽ dùng cùng backend ở Phase 6.
+  page-size: 12
+  recommendation-count: 3
+  # Hard ceiling trong core: 10000 target, 2000 path, 16 MiB verified target payload.
+  maximum-targets: 2048
+  maximum-paths: 512
+  # false: source không khớp path enabled sẽ không được xem target nâng cấp.
+  allow-unpathed: true
+
+targets:
+  - id: gold_ingot
+    item: 'minecraft:gold_ingot'
+    amount: 1
+    name: '<gold>Thỏi vàng</gold>'
+    category: materials
+    tags: [vanilla, metal]
+    enabled: true
+    # Chỉ ảnh hưởng sắp xếp recommendation, KHÔNG ảnh hưởng xác suất/quà.
+    priority: 0
+    permission: ''
+    # ID trong conditions.yml; PAPI thiếu/chưa resolve => khóa an toàn.
+    conditions: []
+    # Rỗng: tất cả source hợp lệ. Không vượt qua hạn chế của LOCKED path.
+    allowed-sources: []
+
+  - id: diamond
+    item: 'minecraft:diamond'
+    amount: 1
+    name: '<aqua>Kim cương</aqua>'
+    category: materials
+    tags: [vanilla, gem]
+    enabled: true
+    priority: 0
+    permission: ''
+    conditions: []
+    allowed-sources: []
+
+  - id: diamond_sword
+    item: 'minecraft:diamond_sword'
+    amount: 1
+    name: '<aqua>Kiếm kim cương</aqua>'
+    category: weapons
+    tags: [vanilla, sword]
+    enabled: true
+    priority: 0
+    permission: ''
+    conditions: []
+    allowed-sources: []
+
+# Ví dụ item custom (chỉ mở sau khi provider + key + values.yml thực sự sẵn sàng):
+# - id: dragon_blade
+#   item: 'mmoitems:SWORD:DRAGON_BLADE'
+#   amount: 1
+#   name: '<red>Dragon Blade</red>'
+#   category: weapons
+#   tags: [mmo, sword]
+#   enabled: true
+#   priority: 10
+#   permission: 'ledatitemupgrader.target.dragon'
+#   conditions: []
+#   allowed-sources: ['mmoitems:SWORD:WARRIOR_T2']
+# Cần reload Upgrader sau khi chỉnh template provider để bỏ cache snapshot cũ.

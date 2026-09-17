@@ -1,0 +1,13 @@
+ADMIN UI SIMULATION. Selected outcome=WIN, no odds fabricated; no items, money, RNG or rewards.
+0ms INTRO marker=0 outcome=HIDDEN cue=START
+250ms ACCELERATE marker=0 outcome=HIDDEN cue=NONE
+700ms SPIN marker=6 outcome=HIDDEN cue=NONE
+1600ms DECELERATE marker=7 outcome=HIDDEN cue=NONE
+3300ms LAND marker=0 outcome=HIDDEN cue=PULSE
+3550ms REVEAL marker=0 outcome=WIN cue=WIN
+4450ms CLOSE FINISHED
+Active after completion=0, stale skip=false
+Lag test: first rendering callback at t=20s still shows exactly one reveal then holds it.
+t=20s phase=REVEAL cue=WIN
+Skip after reveal=false (does not extend result hold)
+After hold=FINISHED

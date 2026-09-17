@@ -1,0 +1,57 @@
+# Value nội bộ để tính tỉ lệ ở phase sau, không tự đồng bộ giá với shop/economy.
+# Resolver: manual -> rules -> provider-defaults -> recipes -> rarity-defaults -> UNKNOWN.
+# Base chỉ chọn MỘT resolver; enchant/rarity/durability là modifier sau base.
+config-version: 1
+
+manual:
+  - item: 'minecraft:iron_ingot'
+    value: '90'
+  - item: 'minecraft:gold_ingot'
+    value: '180'
+  - item: 'minecraft:diamond'
+    value: '900'
+  - item: 'minecraft:stick'
+    value: '2'
+  - item: 'minecraft:diamond_sword'
+    value: '1800'
+  # Thêm key provider thật sau khi cài plugin tương ứng.
+  # Case của ID custom được giữ nguyên, KHÔNG tự upper/lowercase toàn bộ.
+  # - item: 'mmoitems:SWORD:DRAGON_BLADE'
+  #   value: '250000'
+  # - item: 'itemsadder:server:ruby'
+  #   value: '1500'
+
+# Rule có priority lớn được ưu tiên. Trùng priority và cùng khớp -> từ chối định giá.
+# Không dùng lore/display name để suy ra rarity hoặc custom ID.
+rules: []
+# Ví dụ rule:
+#  - id: warrior_t2
+#    priority: 100
+#    provider: 'mmoitems'
+#    item: 'mmoitems:SWORD:WARRIOR_T2'
+#    value: '150000'
+
+# Hai fallback rộng này mặc định rỗng để tránh định giá bừa cho item chưa biết.
+provider-defaults: []
+rarity-defaults: []
+
+blocked-items:
+  - 'minecraft:barrier'
+  - 'minecraft:command_block'
+  - 'minecraft:structure_block'
+  - 'minecraft:bedrock'
+
+modifiers:
+  enchantments:
+    - key: 'minecraft:sharpness'
+      per-level: '100'
+    - key: 'minecraft:unbreaking'
+      per-level: '60'
+  # Chỉ dùng rarity từ adapter đáng tin; guide hiện chưa mô tả API stat/rarity.
+  # Core đã hỗ trợ, Paper adapter Phase 1 chưa tự lấy rarity từ MMOItems/Nexo.
+  rarity: []
+  durability:
+    enabled: true
+    # factor = minimum + (1 - minimum) * phần durability còn lại.
+    # Item không có durability -> không áp modifier này.
+    minimum-factor: '0.25'

@@ -1,0 +1,40 @@
+# LeDatItemUpgrader | Phase 0-4
+# Mọi file gameplay/GUI phải validate xong rồi mới thay runtime hiện tại.
+# Sai key, kiểu dữ liệu hoặc range: reload bị từ chối, runtime cũ tiếp tục dùng.
+config-version: 1
+
+features:
+  # Hai cờ này CỐ Ý bị khóa false trong bản nền. Bật true sẽ làm validation thất bại.
+  # Transaction core đã có, nhưng native escrow/ledger/delivery chưa phát hành; không lấy item/trừ tiền.
+  upgrades-enabled: false
+  packet-renderer-enabled: false
+
+performance:
+  # Số template custom item được kiểm tra tối đa trong MỘT callback capture (value/inspect/catalog).
+  # Không scan toàn bộ catalog mỗi tick. Index tự hủy khi revision config thay đổi.
+  # Catalog warm-up tự nối callback theo batch; value/inspect cũ có thể cần gọi lại khi index chưa đủ.
+  identity-probe-batch: 16
+  command-cooldown-ms: 1000
+
+storage:
+  # Guide đã cho chữ ký database().query(...) nhưng chưa cho chữ ký sqliteStore(...).
+  # Vì vậy Phase 0 CHƯA tự mở database SQLite riêng. Không có pool/JDBC driver riêng.
+  # Bật schema dùng database do Platform đang quản lý; backend SQL do Platform cấu hình.
+  mode: PLATFORM_SHARED
+  # Cờ cũ chỉ cho schema_meta nền. Phase 9A quản lý schema đầy đủ qua storage-management.yml.
+  # Giữ false ở đây; không tự đổi nghĩa cờ cũ để tạo 12 bảng khi nâng phiên bản.
+  # true: CHỈ khởi tạo schema_meta cũ; KHÔNG tự mở bảng transaction hoặc kích hoạt gacha.
+  initialize-schema: false
+
+limits:
+  # Value là đơn vị định giá nội bộ, KHÔNG tự động là Vault money hoặc PlayerPoints.
+  # Decimal BẮT BUỘC đặt trong dấu nháy để tránh YAML -> double mất chính xác.
+  scale: 6
+  max-amount: 64
+  max-snapshot-bytes: 65536
+  max-enchant-level: 10
+  max-unit-value: '1000000000000'
+  max-total-value: '64000000000000'
+  # Giới hạn graph ngăn recipe cycle/graph lớn làm nghẽn worker.
+  recipe-max-depth: 24
+  recipe-max-nodes: 2048

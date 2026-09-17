@@ -1,0 +1,31 @@
+# LeDatItemUpgrader | Phase 2 — Upgrade paths
+# Priority lớn thắng dựa trên SOURCE KEY trước khi check permission/condition.
+# Khi path ưu tiên cao bị denied, KHÔNG fallback xuống path thấp/catalog tự do.
+# Hai path enabled trùng source và priority -> từ chối toàn bộ reload.
+# LOCKED: chỉ target được liệt kê. OPEN: ưu tiên target liệt kê, rồi thêm catalog hợp lệ.
+# Thứ tự targets là thứ tự recommendation. Không có weight/RNG ở bước chọn target.
+# Path không bypass value-ratio bounds, provider availability hoặc quyền riêng của target.
+config-version: 1
+
+paths:
+  - id: iron_progression
+    sources: ['minecraft:iron_ingot']
+    priority: 100
+    mode: LOCKED
+    targets: [gold_ingot, diamond]
+    enabled: true
+    permission: ''
+    conditions: []
+
+  - id: gold_progression
+    sources: ['minecraft:gold_ingot']
+    priority: 100
+    mode: OPEN
+    targets: [diamond, diamond_sword]
+    enabled: true
+    permission: ''
+    conditions: []
+
+# Profile constraints nằm ở profiles.yml.path-profile-rules; transfer/failure effects ở phase sau.
+# Không khai báo key chưa triển khai:
+# validator sẽ từ chối unknown key thay vì âm thầm bỏ qua.

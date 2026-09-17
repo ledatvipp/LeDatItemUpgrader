@@ -1,0 +1,6 @@
+PASS JDK: javac 21.0.11
+BLOCKED Gradle: installed Gradle executable not found
+BLOCKED API: API artifact is missing; supply --api-jar with the actual server API JAR
+NETWORK NOT PROBED. Paper/PAPI/SnakeYAML dependency resolution remains a separate Gradle step.
+No plugin compiled; no JAR generated; no native integration or live transaction tested.
+RESULT blocking_prerequisites=2

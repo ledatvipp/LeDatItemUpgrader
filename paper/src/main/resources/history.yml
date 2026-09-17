@@ -1,0 +1,29 @@
+# LeDatItemUpgrader | Phase 8 — History / cached statistics (read-only UI)
+# Để đọc, storage-management.yml cần VERIFY/INITIALIZE và đạt READ_READY.
+# Để có dữ liệu thật, live journal writer vẫn cần commitHook; Phase 9A chưa bật writer.
+# Đây KHÔNG phải công tắc bật upgrade, không tạo DB/schema và không import dữ liệu cũ.
+# Thiếu table / DB lỗi -> báo không khả dụng, không hiển thị lịch sử rỗng giả.
+config-version: 1
+enabled: false
+placeholders-enabled: true
+# Inventory chỉ giữ icon; đóng menu bỏ view, không hoàn/thu/phát vật phẩm.
+close-behavior: DISCARD_VIEW
+maximum-sessions: 64
+# Capacity chỉ được nhả khi DB future thật hoàn tất, không nhả sớm khi viewer timeout.
+maximum-queries: 16
+maximum-pages: 64
+cache-size: 2000
+# Chỉ dành cho statistics/PAPI, không được dùng làm dữ liệu authoritative của pity quote.
+cache-ttl-seconds: 30
+request-timeout-seconds: 10
+session-timeout-seconds: 300
+# Policy cho maintenance; Phase 9A chỉ chạy khi storage-management.yml.maintenance.enabled=true.
+# Chỉ xóa UI history của COMPLETED/ABORTED theo updated_at, mỗi batch giới hạn dưới đây.
+# Không xóa journal, output, reconciliation, completion tombstone hoặc pity/statistics.
+retention-days: 90
+retention-batch: 200
+sounds:
+  open: {key: 'minecraft:block.chest.open', volume: '0.4', pitch: '1.2'}
+  click: {key: 'minecraft:ui.button.click', volume: '0.3', pitch: '1.1'}
+  error: {key: '', volume: '0.4', pitch: '1.0'}
+  close: {key: 'minecraft:block.chest.close', volume: '0.3', pitch: '1.2'}

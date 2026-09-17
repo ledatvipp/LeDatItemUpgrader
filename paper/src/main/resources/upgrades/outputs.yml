@@ -1,0 +1,70 @@
+# LeDatItemUpgrader | Phase 5 — output, chuyển metadata và xử lý thất bại
+# Backend vẫn chưa mở giao dịch live. File này được validate và pin vào quote mới.
+# Reload sai reference/type -> giữ runtime cũ. Không sửa terms của attempt đã lưu.
+config-version: 1
+
+# CLEAN giữ template mới của TARGET, không xóa PDC identity/metadata riêng của provider.
+# Không có COPY_ALL_PDC. Custom stats/sockets/unique IDs cần adapter đã kiểm chứng, không đọc từ lore.
+default-transfer: clean
+transfer-policies:
+  - id: clean
+    custom-name: false
+    repair-cost: false
+    durability: TARGET_DEFAULT
+    enchantments: []
+    pdc: []
+
+  # Mẫu chưa gắn path. Tên được chuyển thành literal text, không parse MiniMessage.
+  # MERGE_MAX: enchant nguồn nằm trong allow-list được merge lấy level cao hơn với enchant target.
+  # Quá cap, không tương thích hoặc conflict -> từ chối; không âm thầm hạ/loại enchant.
+  - id: vanilla-safe
+    custom-name: true
+    repair-cost: false
+    durability: TARGET_DEFAULT
+    enchantments:
+      - key: 'minecraft:unbreaking'
+        maximum-level: 3
+    pdc: []
+
+  # PDC ví dụ (cần adapter chủ sở hữu xác nhận writable key; vanilla adapter không cho phép):
+  # pdc:
+  #   - key: 'myplugin:soulbound_owner'
+  #     type: STRING
+  # Types: STRING, INTEGER, LONG, BYTE_ARRAY; giới hạn 4096 byte/value, không nested PDC.
+  # Namespace minecraft/mmoitems/mythiclib/itemsadder/oraxen/nexo/ledatitemupgrader bị chặn.
+  # Identity keys của namespace khác vẫn cần adapter bảo vệ; deny-list không tự chứng minh key an toàn.
+  # durability: DAMAGE_RATIO_CEIL = giữ tỷ lệ độ hư, làm tròn damage lên, từ chối target bị hỏng.
+
+failure-policies:
+  - id: destroy
+    type: DESTROY
+  - id: keep
+    type: KEEP
+  # Hai mẫu dưới đây chưa gắn profile, không tự bật.
+  - id: damage-20
+    type: DAMAGE
+    basis-points: 2000 # 2000/10000 = thêm damage bằng 20% MAX durability, làm tròn lên.
+    on-break: DESTROY # CLAMP_ONE giữ 1 durability; nếu không thể hư thêm thì từ chối attempt.
+  - id: downgrade-iron-sword
+    type: DOWNGRADE
+    item: 'minecraft:iron_sword'
+    amount: 1
+    transfer: clean
+    # Output mới phải có tổng value THẤP HƠN source. Unknown value -> từ chối, không gán 0.
+    # Không đổi Material trên item cũ. Provider phải tạo item mới và identity mới khi có unique ID.
+
+# profiles.yml vẫn khai báo failure: DESTROY / KEEP / DAMAGE / DOWNGRADE.
+# Hai file phải khớp mode. DESTROY/KEEP không cần mapping, có mặc định an toàn.
+# DAMAGE/DOWNGRADE bắt buộc mapping đầy đủ, không có con số hardcode trong engine.
+profile-failures: []
+# - profile: damaged
+#   failure: damage-20
+
+# Chỉ override success transfer cho path đã tồn tại. Rỗng = toàn bộ dùng clean.
+path-transfers: []
+# - path: iron_progression
+#   transfer: vanilla-safe
+
+# Output thật được tạo/lưu trước giữ item/trừ phí. Nếu value sau chuyển metadata khác quote,
+# engine từ chối RECONFIRM_REQUIRED; GUI phải tạo quote phù hợp, không âm thầm đổi chance/giá.
+# Nếu provider build random stats mà không có capability preview/build thống nhất, chưa mở live.

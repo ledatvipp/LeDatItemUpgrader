@@ -1,0 +1,31 @@
+PASS schema.idempotent-version-indexes-wal
+PASS schema.unknown-version-failclosed
+PASS claim.atomic-history-pity-lock-zero-statistics
+PASS claim.stale-pity-rolls-back-all-new-rows
+PASS claim.no-hook-cannot-drop-pity
+PASS claim.duplicate-does-not-duplicate-history
+PASS claim.second-quote-same-player-is-busy
+PASS settlement.history-at-every-cas-win
+PASS settlement.history-at-every-cas-loss
+PASS settlement.repeated-cas-does-not-increment-twice
+PASS settlement.failures-increment-win-resets
+PASS settlement.expired-abort-not-loss-or-pity
+PASS settlement.uncertain-pending-loss-keeps-lock-no-stat
+PASS atomic.hook-error-after-counters-rolls-back-unlock-event-all
+PASS atomic.pity-changed-during-attempt-refuses-completion
+PASS atomic.completion-tombstone-conflict-rolls-back
+PASS atomic.history-predecessor-mismatch-refuses-cas
+PASS atomic.lost-commit-ack-readback-no-double-count
+PASS read.absent-row-zero-but-missing-table-error
+PASS read.malformed-statistics-not-zero
+java.sql.SQLException: bridge process ended
+	at vn.ledat.itemupgrader.test.PythonSqliteBridge.receive(PythonSqliteBridge.java:104)
+	at vn.ledat.itemupgrader.test.PythonSqliteBridge.update(PythonSqliteBridge.java:69)
+	at vn.ledat.itemupgrader.test.PythonSqliteBridge.lambda$statement$1(PythonSqliteBridge.java:57)
+	at jdk.proxy1/jdk.proxy1.$Proxy1.executeUpdate(Unknown Source)
+	at vn.ledat.itemupgrader.transaction.storage.JdbcTransactionRepository.execute(JdbcTransactionRepository.java:154)
+	at vn.ledat.itemupgrader.transaction.storage.JdbcTransactionRepository.initialize(JdbcTransactionRepository.java:23)
+	at vn.ledat.itemupgrader.test.Phase08SqliteRepositoryTest$Env.<init>(Phase08SqliteRepositoryTest.java:51)
+	at vn.ledat.itemupgrader.test.Phase08SqliteRepositoryTest.lambda$tests$30(Phase08SqliteRepositoryTest.java:86)
+	at vn.ledat.itemupgrader.test.Phase08SqliteRepositoryTest.main(Phase08SqliteRepositoryTest.java:35)
+FAIL read.keyset-owner-filter-pagination

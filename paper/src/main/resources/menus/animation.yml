@@ -1,0 +1,141 @@
+# Phase 7: chỉ trình diễn UI. Không giữ đồ, trừ tiền, quay RNG hoặc phát thưởng.
+# /upgrader animation win [preset] và /upgrader animation loss [preset]
+# yêu cầu ledatitemupgrader.admin.animation. Nút UPGRADE thật vẫn khóa.
+config-version: 1
+preview-enabled: true
+# Chỉ các session đang xem animation được đưa vào một queue round-robin.
+# Mỗi tick thăm tối đa visits-per-tick session; không tạo repeating task từng player.
+# Khi đông người xem, FPS mỗi viewer giảm; không dồn phát lại frame/âm thanh bị bỏ lỡ.
+maximum-sessions: 64
+visits-per-tick: 16
+open-cooldown-ms: 1500
+# Callback không được apply/ack trong thời gian này: hủy UI, không làm gì với transaction.
+callback-timeout-ms: 5000
+# Tick cue tối đa 1 lần / khoảng này / viewer; WIN/LOSS cue chỉ một lần khi reveal được apply.
+pulse-interval-ms: 120
+default-preset: roulette
+
+# Đơn vị milliseconds thời gian thực, không phải ticks (20 ticks không luôn bằng 1 giây).
+# Timeline chỉ nhận kết quả có trước. Route trung tính, KHÔNG dùng số ô vàng để biểu diễn xác suất.
+# acceleration: tăng tốc tuyến tính; deceleration: tốc độ giảm theo (1-u)^2, không overshoot.
+# reveal-hold bắt đầu từ frame kết quả đầu tiên được render/ack, không bắt đầu từ thời điểm frame bị bỏ lỡ.
+presets:
+  roulette:
+    kind: ROULETTE
+    intro-ms: 250
+    acceleration-ms: 450
+    cruise-ms: 900
+    deceleration-ms: 1700
+    landing-ms: 250
+    reveal-hold-ms: 900
+    turns: 4
+  quick:
+    kind: QUICK
+    intro-ms: 100
+    acceleration-ms: 100
+    cruise-ms: 150
+    deceleration-ms: 400
+    landing-ms: 150
+    reveal-hold-ms: 700
+    turns: 2
+  none:
+    kind: NONE
+    intro-ms: 0
+    acceleration-ms: 0
+    cruise-ms: 0
+    deceleration-ms: 0
+    landing-ms: 0
+    reveal-hold-ms: 700
+    turns: 0
+
+menu:
+  title: '<dark_gray>Item Upgrader • {preset}</dark_gray>'
+  # Native grid 9 cột. STATUS/BADGE/SKIP/CLOSE phải xuất hiện đúng một lần.
+  matrix:
+    - '#########'
+    - '##TTTTT##'
+    - '##T#I#T##'
+    - '##TTTTT##'
+    - '####B####'
+    - '##K###X##'
+  symbols:
+    '#': FILLER
+    T: TRACK
+    I: STATUS
+    B: BADGE
+    K: SKIP
+    X: CLOSE
+  # Zero-based rawSlot, đủ mỗi TRACK đúng một lần theo chiều chuyển động.
+  # Đổi matrix phải cập nhật route. Route tròn chỉ trang trí, không thay odds.
+  track-order: [11, 12, 13, 14, 15, 24, 33, 32, 31, 30, 29, 20]
+  # Đây là item cosmetic mới; không deserialize item, không copy PDC/UUID/provider data.
+  # Mỗi icon hỗ trợ item-model: 'my_pack:ui/model' hoặc custom-model-data: 123.
+  # Resource Pack sau này thay các icon/title này, không đổi timeline/transaction.
+  # Placeholder: {stage}, {outcome}, {mode}, {chance}, {preset}, {prefix}.
+  # Không có {sample}/{roll}; preview không bịa chance hoặc sample.
+  icons:
+    FILLER:
+      material: BLACK_STAINED_GLASS_PANE
+      name: ' '
+      lore: []
+      glow: false
+    TRACK:
+      material: GRAY_STAINED_GLASS_PANE
+      name: '<dark_gray>•</dark_gray>'
+      lore: []
+      glow: false
+    MARKER:
+      material: YELLOW_STAINED_GLASS_PANE
+      name: '<yellow>»</yellow>'
+      lore: []
+      glow: true
+    STATUS:
+      material: CLOCK
+      name: '<gold>{stage}</gold>'
+      lore:
+        - '<gray>{mode}</gray>'
+        - '<gray>Preset: <white>{preset}</white></gray>'
+        - '<gray>Tỷ lệ thật: <white>{chance}</white></gray>'
+      glow: false
+    WIN:
+      material: LIME_STAINED_GLASS_PANE
+      name: '<green>{outcome}</green>'
+      lore:
+        - '<gray>{mode}</gray>'
+        - '<gray>Kết quả hiển thị không xác nhận đã nhận vật phẩm.</gray>'
+      glow: true
+    LOSS:
+      material: RED_STAINED_GLASS_PANE
+      name: '<red>{outcome}</red>'
+      lore:
+        - '<gray>{mode}</gray>'
+        - '<gray>Đây là reveal; animation không sửa giao dịch.</gray>'
+      glow: false
+    BADGE:
+      material: PAPER
+      name: '<yellow>{mode}</yellow>'
+      lore:
+        - '<gray>{mode}</gray>'
+        - '<gray>Không có phần thưởng từ nút này.</gray>'
+      glow: false
+    SKIP:
+      material: FEATHER
+      name: '<aqua>Bỏ qua animation</aqua>'
+      lore:
+        - '<gray>Hiện ngay cùng kết quả đã định trước.</gray>'
+        - '<gray>Không roll lại, không thay chi phí.</gray>'
+      glow: false
+    CLOSE:
+      material: BARRIER
+      name: '<red>Đóng</red>'
+      lore:
+        - '<gray>Chỉ đóng phần hiển thị.</gray>'
+      glow: false
+
+# key rỗng '' tắt cue. Chỉ sound registry của version server hiện tại được chấp nhận.
+# Volume/pitch là chuỗi decimal có dấu nháy để không qua YAML double.
+sounds:
+  START: {key: 'minecraft:block.note_block.pling', volume: '0.4', pitch: '1.0'}
+  PULSE: {key: 'minecraft:ui.button.click', volume: '0.2', pitch: '1.5'}
+  WIN: {key: 'minecraft:entity.player.levelup', volume: '0.5', pitch: '1.2'}
+  LOSS: {key: 'minecraft:block.note_block.bass', volume: '0.5', pitch: '0.7'}
