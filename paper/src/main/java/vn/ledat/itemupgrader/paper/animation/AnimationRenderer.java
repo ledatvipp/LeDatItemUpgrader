@@ -23,12 +23,16 @@ public final class AnimationRenderer {
         this.messages = messages; this.config = config; this.request = request; this.preset = preset;
     }
     public Component title() {
-        return messages.template(config.menu().title(), parameters(AnimationTimeline.Phase.INTRO))
+        return title(new AnimationTimeline.Frame(AnimationTimeline.Phase.INTRO, 0, 0, Optional.empty()), 0);
+    }
+    public Component title(AnimationTimeline.Frame frame, long titleFrame) {
+        return messages.template(config.menu().titleFrame(titleFrame), parameters(frame.phase()))
                 .append(messages.component(request.origin() == AnimationRequest.Origin.ADMIN_PREVIEW
                         ? "animation-title-preview" : "animation-title-committed", Map.of()));
     }
     public Map<Integer, ItemStack> render(AnimationTimeline.Frame frame) {
         Map<Integer, ItemStack> result = new HashMap<>();
+        for (int slot = 0; slot < config.menu().size(); slot++) result.put(slot, new ItemStack(Material.AIR));
         config.menu().frame(frame).forEach((slot, palette) -> result.put(slot,
                 cache.computeIfAbsent(new Key(palette, frame.phase()), this::icon)));
         return Map.copyOf(result); // cached templates are never passed directly into the native inventory

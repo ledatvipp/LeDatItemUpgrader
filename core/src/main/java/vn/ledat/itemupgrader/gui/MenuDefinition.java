@@ -7,7 +7,7 @@ import java.util.Objects;
 /** Presentation blueprint only. No inventory or transaction side effects live in this model. */
 public record MenuDefinition(String id, String title, List<String> matrix, Map<Character, Element> symbols) {
     public enum Role { FILLER, SOURCE_INPUT, SOURCE_PREVIEW, TARGET, CHANCE, INFO, BUTTON, CATALOG_ENTRY, PROFILE_ENTRY, BOOST_ENTRY }
-    public enum Action { NONE, SOURCE_INPUT, OPEN_CATALOG, SELECT_PROFILE, TOGGLE_BOOST, UPGRADE, CLOSE, NEXT_PAGE, PREVIOUS_PAGE, SELECT_TARGET, BACK_MAIN, OPEN_PROFILES, OPEN_BOOSTS, REFRESH, CLEAR_BOOSTS, CYCLE_SORT, CYCLE_CATEGORY }
+    public enum Action { NONE, SOURCE_INPUT, ADJUST_AMOUNT, OPEN_CATALOG, SELECT_PROFILE, TOGGLE_BOOST, UPGRADE, CLOSE, NEXT_PAGE, PREVIOUS_PAGE, SELECT_TARGET, BACK_MAIN, OPEN_PROFILES, OPEN_BOOSTS, REFRESH, CLEAR_BOOSTS, CYCLE_SORT, CYCLE_CATEGORY }
     public record Element(Role role, String material, String name, List<String> lore,
                           String itemModel, Integer customModelData, boolean glow, Action action, String argument) {
         public Element {
@@ -29,6 +29,10 @@ public record MenuDefinition(String id, String title, List<String> matrix, Map<C
                 throw new IllegalArgumentException("read-only role cannot own actions");
             if ((action == Action.SELECT_PROFILE || action == Action.TOGGLE_BOOST) && !GuiMenus.isEntry(role) && argument.isBlank())
                 throw new IllegalArgumentException("selection action needs an explicit id");
+            if (action == Action.ADJUST_AMOUNT && !argument.matches("(?:2|4|8|12|16|20)"))
+                throw new IllegalArgumentException("amount adjustment must be one of 2,4,8,12,16,20");
+            if (action == Action.ADJUST_AMOUNT && role != Role.BUTTON)
+                throw new IllegalArgumentException("amount adjustment requires button role");
             if (role == Role.CATALOG_ENTRY && action != Action.SELECT_TARGET
                     || role == Role.PROFILE_ENTRY && action != Action.SELECT_PROFILE
                     || role == Role.BOOST_ENTRY && action != Action.TOGGLE_BOOST)

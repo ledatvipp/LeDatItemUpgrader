@@ -1,5 +1,5 @@
 # LeDatItemUpgrader | Phase 5 — output, chuyển metadata và xử lý thất bại
-# Backend vẫn chưa mở giao dịch live. File này được validate và pin vào quote mới.
+# Native test executor hỗ trợ CLEAN + DESTROY/KEEP; policy nâng cao vẫn bị từ chối an toàn.
 # Reload sai reference/type -> giữ runtime cũ. Không sửa terms của attempt đã lưu.
 config-version: 1
 

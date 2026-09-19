@@ -44,7 +44,7 @@ public final class PluginBootstrap {
         catalogs = new CatalogPreviewService(owner, platform, runtime, messages, identities, cache, accessSnapshots);
         quotes = new QuotePreviewService(owner, platform, runtime, messages, cache, identities, accessSnapshots);
         var guiLoader = new vn.ledat.itemupgrader.paper.gui.GuiPreviewLoader(owner, platform, runtime, cache, identities, accessSnapshots);
-        guis = new vn.ledat.itemupgrader.paper.gui.InventoryGuiService(owner, platform, runtime, messages, guiLoader, accessSnapshots);
+        guis = new vn.ledat.itemupgrader.paper.gui.InventoryGuiService(owner, platform, runtime, messages, guiLoader, accessSnapshots, identities);
         animations = new vn.ledat.itemupgrader.paper.animation.InventoryAnimationService(owner, platform, runtime, messages);
         storage = new vn.ledat.itemupgrader.paper.storage.PlatformStorageService(owner,platform,runtime,messages);
         history = new vn.ledat.itemupgrader.paper.history.HistoryUiService(owner,platform,runtime,messages,storage.historyStore());
@@ -56,7 +56,7 @@ public final class PluginBootstrap {
         owner.getServer().getPluginManager().registerEvents(new vn.ledat.itemupgrader.paper.animation.AnimationInventoryListener(animations), owner);
         owner.getServer().getPluginManager().registerEvents(new vn.ledat.itemupgrader.paper.history.HistoryInventoryListener(history), owner);
         storage.start(); guis.start(); animations.start(); history.start();
-        owner.getLogger().info("Bootstrap registered; API=" + platform.apiVersion() + "; waiting for async configuration. Inventory preview wired (REFERENCE_ONLY); admin animation preview wired; live transactions and packets remain disabled.");
+        owner.getLogger().info("Bootstrap registered; API=" + platform.apiVersion() + "; waiting for async configuration. Native test upgrades follow config.yml features.upgrades-enabled; advanced output policies remain gated.");
         configs.reload(null);
     }
     public void stop() {

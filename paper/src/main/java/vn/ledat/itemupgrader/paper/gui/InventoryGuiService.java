@@ -2,9 +2,11 @@ package vn.ledat.itemupgrader.paper.gui;
 
 import java.time.Instant;
 import java.util.*;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.logging.Level;
 import net.kyori.adventure.key.Key;
 import net.kyori.adventure.sound.Sound;
+import net.kyori.adventure.text.Component;
 import org.bukkit.GameMode;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
@@ -13,6 +15,8 @@ import org.bukkit.plugin.java.JavaPlugin;
 import vn.ledat.itemupgrader.catalog.CatalogQuery;
 import vn.ledat.itemupgrader.gui.*;
 import vn.ledat.itemupgrader.paper.message.Messages;
+import vn.ledat.itemupgrader.paper.item.PlatformIdentityIndex;
+import vn.ledat.itemupgrader.paper.transaction.NativeTestUpgradeService;
 import vn.ledat.itemupgrader.paper.platform.PlatformAccess;
 import vn.ledat.itemupgrader.paper.service.AccessSnapshotService;
 import vn.ledat.itemupgrader.runtime.*;
@@ -21,9 +25,18 @@ import vn.ledat.itemupgrader.runtime.*;
 public final class InventoryGuiService {
     private static final class View {
         final UpgraderGuiHolder holder;
+        final GuiTitleToken titleToken;
         Map<Integer,ItemStack> last=Map.of(); Map<Integer,GuiRenderer.Binding> actions=Map.of();
         GuiPreviewLoader.Loaded loaded;
-        View(UpgraderGuiHolder holder) { this.holder=holder; }
+        GuiSessionStore.State titleState; Optional<GuiPreviewService.Preview> titlePreview=Optional.empty();
+        UpgraderTitleRenderer.Data rollData; NativeTestUpgradeService.Prepared pendingUpgrade;
+        int landingBar;
+        Component lastTitle; String titleSignature=""; long titleStarted, titleRollSeed;
+        boolean titleComplete=true, titleRolling;
+        boolean titleActive;
+        View(UpgraderGuiHolder holder, GuiTitleToken titleToken, Component title) {
+            this.holder=holder; this.titleToken=titleToken; this.lastTitle=title;
+        }
     }
     private final JavaPlugin owner; private final PlatformAccess platform; private final RuntimeStore<UpgraderRuntime> runtime;
     private final Messages messages; private final GuiPreviewLoader loader; private final AccessSnapshotService access;
@@ -33,13 +46,18 @@ public final class InventoryGuiService {
     private final Map<UUID,GuiSessionStore.Handle> pendingOpens=new HashMap<>();
     private final UUID ownerToken=UUID.randomUUID();
     private final PaperGuiScheduler scheduler; private final GuiRenderer renderer;
-    private boolean stopped;
+    private final UpgraderTitleRenderer titleRenderer; private final GuiTitlePackets titlePackets;
+    private final NativeTestUpgradeService upgrades;
+    private long titleTick; private int titleCursor;
+    private boolean stopped, titleWarning;
     public InventoryGuiService(JavaPlugin owner, PlatformAccess platform, RuntimeStore<UpgraderRuntime> runtime,
-                               Messages messages, GuiPreviewLoader loader, AccessSnapshotService access) {
+                               Messages messages, GuiPreviewLoader loader, AccessSnapshotService access,PlatformIdentityIndex identities) {
         this.owner=owner; this.platform=platform; this.runtime=runtime; this.messages=messages; this.loader=loader; this.access=access;
         this.scheduler=new PaperGuiScheduler(owner,platform); this.renderer=new GuiRenderer(messages);
+        this.titleRenderer=new UpgraderTitleRenderer(owner); this.titlePackets=new GuiTitlePackets(owner);
+        this.upgrades=new NativeTestUpgradeService(platform,identities);
     }
-    public void start() { scheduler.sweep(this::sweep); }
+    public void start() { scheduler.sweep(this::sweep); scheduler.repeat(this::tickTitles,1); }
     public boolean owns(Inventory top) { return top.getHolder(false) instanceof UpgraderGuiHolder h&&h.owned(ownerToken)&&h.getInventory()==top; }
     public Optional<GuiSessionStore.State> state(Player player, Inventory top) {
         if(!owns(top)||stopped) return Optional.empty();
@@ -92,7 +110,9 @@ public final class InventoryGuiService {
     /** Called only after the listener cancels the event. Captures IDs/context, never InventoryClickEvent/Player. */
     public void click(Player player, GuiSessionStore.State current, GuiRenderer.Binding button, boolean right, int sourceSlot) {
         if(!permitted(player)) return;
-        if(right&&button.action()!=MenuDefinition.Action.SOURCE_INPUT) return;
+        var live=views.get(player.getUniqueId());
+        if(live!=null&&live.titleRolling&&button.action()!=MenuDefinition.Action.CLOSE) return;
+        if(right&&button.action()!=MenuDefinition.Action.SOURCE_INPUT&&button.action()!=MenuDefinition.Action.ADJUST_AMOUNT) return;
         var reserved=sessions.reserve(current.handle());
         if(reserved.isEmpty()) return;
         var ticket=reserved.orElseThrow();
@@ -109,13 +129,26 @@ public final class InventoryGuiService {
         try {
             if(button.action()==MenuDefinition.Action.CLOSE) { cue(player,definition,"close"); exit(player.getUniqueId(),null); return; }
             if(button.action()==MenuDefinition.Action.UPGRADE) {
-                // No AttemptPlanner/Engine/EffectPort reachable from this UI until native acceptance gates pass.
-                messages.send(player,"gui-transactions-locked"); cue(player,definition,"error");
-                refresh(player,queued,definition); return;
+                var finished=sessions.complete(queued.handle(),queued.context());
+                if(finished.isEmpty()) return;
+                var stable=finished.orElseThrow();
+                if(!definition.value().upgradesEnabled()) {
+                    messages.send(player,"gui-transactions-locked");cue(player,definition,"error");return;
+                }
+                if(v.loaded==null)throw new IllegalArgumentException("upgrade preview unavailable");
+                var layout=definition.value().gui().orElseThrow().titleLayout().filter(UpgraderTitleLayout::enabled)
+                        .orElseThrow(()->new IllegalArgumentException("upgrade roll title disabled"));
+                var data=titleRenderer.data(player,stable,Optional.of(v.loaded.preview()),layout)
+                        .orElseThrow(()->new IllegalArgumentException("upgrade quote unavailable"));
+                var plan=loader.prepareAttempt(player,stable,definition,v.loaded);
+                var prepared=upgrades.prepare(player,definition,plan);
+                startTitleRoll(player,v,stable,layout,data,layout.sampleBar(prepared.sample()),prepared);
+                messages.send(player,"gui-roll-started");cue(player,definition,"click");
+                return;
             }
             GuiContext next=queued.context();
             if(button.action()!=MenuDefinition.Action.SOURCE_INPUT&&v.loaded!=null
-                    &&!GuiPreviewLoader.sameSource(v.loaded.preview().source(),loader.source(player,definition,next.sourceSlot()))) {
+                    &&!GuiPreviewLoader.sameSource(v.loaded.preview().source(),loader.source(player,definition,next.sourceSlot(),next.selectedAmount()))) {
                 next=GuiContext.initial(next.sourceSlot()); messages.send(player,"gui-source-changed");
             } else next=navigate(player,queued.context(),button,right,sourceSlot,v,definition);
             var moved=sessions.transition(queued.handle(),next);
@@ -134,6 +167,15 @@ public final class InventoryGuiService {
         var rules=definition.value().upgradeRules();
         return switch(b.action()) {
             case SOURCE_INPUT -> GuiContext.initial(right?-1:sourceSlot>=0?sourceSlot:player.getInventory().getHeldItemSlot());
+            case ADJUST_AMOUNT -> {
+                if(c.sourceSlot()<0) throw new IllegalArgumentException("amount requires source");
+                ItemStack source=player.getInventory().getItem(c.sourceSlot());
+                if(source==null||source.getType().isAir()) throw new IllegalArgumentException("amount source missing");
+                int step=Integer.parseInt(b.argument());
+                int selected=right?Math.max(1,c.selectedAmount()-step):Math.min(source.getAmount(),c.selectedAmount()+step);
+                if(selected==c.selectedAmount()) throw new IllegalArgumentException("amount bound reached");
+                yield c.amount(selected);
+            }
             case OPEN_CATALOG -> c.screen(GuiContext.Screen.CATALOG);
             case OPEN_PROFILES -> c.screen(GuiContext.Screen.PROFILES);
             case OPEN_BOOSTS -> c.screen(GuiContext.Screen.BOOSTS);
@@ -147,7 +189,7 @@ public final class InventoryGuiService {
             }
             case SELECT_PROFILE -> {
                 var selected=rules.profiles().get(b.argument()); var evidence=access.capture(player,definition.value());
-                var source=loader.source(player,definition,c.sourceSlot());
+                var source=loader.source(player,definition,c.sourceSlot(),c.selectedAmount());
                 var path=source.flatMap(s->definition.value().catalog().pathFor(s.facts().key()));
                 if(selected==null||!selected.enabled()||!rules.profileAllowed(path,selected.id())||!evidence.allows(selected.permission(),selected.requiredConditions()))
                     throw new IllegalArgumentException("profile denied");
@@ -157,7 +199,7 @@ public final class InventoryGuiService {
                 var chosen=new ArrayList<>(c.boosts());
                 if(!chosen.remove(b.argument())) {
                     var selected=rules.boosts().get(b.argument()); var evidence=access.capture(player,definition.value());
-                    var path=loader.source(player,definition,c.sourceSlot()).flatMap(s->definition.value().catalog().pathFor(s.facts().key()));
+                    var path=loader.source(player,definition,c.sourceSlot(),c.selectedAmount()).flatMap(s->definition.value().catalog().pathFor(s.facts().key()));
                     String profile=rules.profileFor(path,c.profileId());
                     if(selected==null||!selected.enabled()||!evidence.allows(selected.permission(),selected.requiredConditions())
                             ||(!selected.allowedProfiles().isEmpty()&&!selected.allowedProfiles().contains(profile))||chosen.size()>=rules.settings().maximumSelectedBoosts())
@@ -207,33 +249,169 @@ public final class InventoryGuiService {
         var gui=definition.value().gui().orElseThrow(); var menu=gui.menu(state.context().screen());
         View v=views.get(player.getUniqueId()); boolean opening=v==null||!sameView(v.holder.identity(),state.handle());
         if(opening) {
-            var title=messages.template(menu.title(),renderer.parameters(definition.value(),state,preview,status));
-            v=new View(new UpgraderGuiHolder(ownerToken,state.handle(),menu.size(),title)); views.put(player.getUniqueId(),v);
+            View retired=v;
+            boolean dynamic=state.context().screen()==GuiContext.Screen.MAIN&&gui.titleLayout().filter(UpgraderTitleLayout::enabled).isPresent();
+            var title=dynamic?initialTitle(player,state,preview,gui.titleLayout().orElseThrow())
+                    :messages.template(menu.title(),renderer.parameters(definition.value(),state,preview,status));
+            var token=dynamic?GuiTitleToken.of(state.handle()):null;
+            v=new View(new UpgraderGuiHolder(ownerToken,state.handle(),menu.size(),title),token,title);
+            if(retired!=null&&retired.titleToken!=null) titlePackets.release(retired.titleToken);
+            views.put(player.getUniqueId(),v);
+            if(dynamic) {
+                v.titleActive=titlePackets.expect(token,v.holder.getInventory());
+                if(!v.titleActive) warnTitle("could not prepare the owned title packet session",null);
+            }
         }
         var frame=renderer.render(definition.revision(),definition.value(),state,preview,status);
         for(var entry:SlotDiff.changed(v.last,frame.items(),menu.size()).entrySet()) v.holder.getInventory().setItem(entry.getKey(),entry.getValue().clone());
         v.last=frame.items(); v.actions=frame.actions();
-        if(opening) player.openInventory(v.holder.getInventory());
+        if(opening) {
+            if(v.titleActive&&!titlePackets.arm(player,v.titleToken,v.holder.getInventory()))
+                disableTitle(v,"could not arm the owned title capture");
+            try { player.openInventory(v.holder.getInventory()); }
+            finally { if(v.titleToken!=null) titlePackets.disarm(v.titleToken); }
+        }
         if(player.getOpenInventory().getTopInventory()!=v.holder.getInventory()) {
             closed(player.getUniqueId(),v.holder);
             // A cancelled replacement may leave our old container open; never leave an untracked owned view.
             if(owns(player.getOpenInventory().getTopInventory())) player.closeInventory();
             return false;
         }
+        if(opening&&v.titleActive&&!titlePackets.activate(player,v.titleToken,v.holder.getInventory()))
+            disableTitle(v,"the owned OPEN_WINDOW packet was not captured");
+        updateTitleState(player,v,state,preview,gui.titleLayout(),opening);
         return true;
     }
     public void closed(UUID viewer, UpgraderGuiHolder holder) {
         if(!holder.owned(ownerToken)) return;
         sessions.close(viewer,holder.identity().session(),holder.identity().view());
-        var v=views.get(viewer); if(v!=null&&v.holder==holder) views.remove(viewer);
+        var v=views.get(viewer); if(v!=null&&v.holder==holder) { views.remove(viewer); releaseTitle(v); }
     }
-    public void forget(UUID viewer) { sessions.forget(viewer); views.remove(viewer); pendingOpens.remove(viewer); }
+    public void forget(UUID viewer) { sessions.forget(viewer); releaseTitle(views.remove(viewer)); pendingOpens.remove(viewer); }
     /** Teleport/death/kick route here, not just forget(): close the exact old view on next tick. */
     public void exit(UUID viewer,String message) {
         sessions.forget(viewer); pendingOpens.remove(viewer); View v=views.remove(viewer);
         if(v==null) return;
+        releaseTitle(v);
         try { scheduler.next(viewer,p->{if(p.getOpenInventory().getTopInventory()==v.holder.getInventory()) {p.closeInventory(); if(message!=null) messages.send(p,message);}}); }
         catch(RuntimeException rejected) { report(rejected); }
+    }
+    private Component initialTitle(Player player,GuiSessionStore.State state,Optional<GuiPreviewService.Preview> preview,
+                                   UpgraderTitleLayout layout) {
+        return titleRenderer.data(player,state,preview,layout).map(data->titleRenderer.preview(player,layout,data))
+                .orElseGet(()->titleRenderer.empty(player,layout));
+    }
+    private void updateTitleState(Player player,View view,GuiSessionStore.State state,Optional<GuiPreviewService.Preview> preview,
+                                  Optional<UpgraderTitleLayout> configured,boolean opening) {
+        view.titleState=state; view.titlePreview=preview;
+        if(!view.titleActive||view.titleToken==null||configured.isEmpty()||!configured.orElseThrow().enabled()) return;
+        var layout=configured.orElseThrow(); var data=titleRenderer.data(player,state,preview,layout);
+        String signature=data.map(UpgraderTitleRenderer.Data::signature).orElse("");
+        if(signature.equals(view.titleSignature)) return;
+        view.titleSignature=signature; view.titleRolling=false; view.titleComplete=true;
+        Component title=data.map(d->titleRenderer.preview(player,layout,d)).orElseGet(()->titleRenderer.empty(player,layout));
+        if(opening) { view.lastTitle=title; return; }
+        sendTitle(player,view,title);
+        // Some inventory/resource-pack listeners finish their own slot/title work later in this
+        // tick. Reassert the exact same completed preview once on the next owner tick so the
+        // initial CHƯA CÓ title cannot win that race. The identity/signature guards prevent a
+        // stale quote from being sent after another click, screen change, or close.
+        UUID viewer=player.getUniqueId();
+        try { scheduler.next(viewer,online->{
+            View live=views.get(viewer);
+            if(live==view&&live.titleActive&&signature.equals(live.titleSignature)
+                    &&online.getOpenInventory().getTopInventory()==live.holder.getInventory())
+                forceTitle(online,live,title);
+        }); }
+        catch(RuntimeException rejected) { report(rejected); }
+    }
+    private void tickTitles() {
+        if(stopped) return; titleTick++;
+        var snapshot=runtime.snapshot();
+        var layout=snapshot.flatMap(s->s.value().gui()).flatMap(GuiMenus::titleLayout).filter(UpgraderTitleLayout::enabled);
+        if(layout.isEmpty()||views.isEmpty()) return;
+        var candidates=views.values().stream().filter(v->v.titleActive&&v.titleToken!=null&&v.titleRolling&&!v.titleComplete).toList();
+        if(candidates.isEmpty()) return;
+        int visits=Math.min(layout.orElseThrow().visitsPerTick(),candidates.size());
+        int start=Math.floorMod(titleCursor,candidates.size()); titleCursor=(start+visits)%candidates.size();
+        for(int i=0;i<visits;i++) {
+            View expected=candidates.get((start+i)%candidates.size());
+            try { platform.player(expected.titleToken.viewer(),player->{
+                try { animateTitle(player,expected,layout.orElseThrow()); }
+                catch(RuntimeException error) { warnTitle("dynamic title rendering failed",error); disableTitle(expected,null); }
+            }); }
+            catch(RuntimeException error) { warnTitle("dynamic title callback failed",error); disableTitle(expected,null); }
+        }
+    }
+    private void animateTitle(Player player,View expected,UpgraderTitleLayout layout) {
+        View live=views.get(expected.titleToken.viewer()); var state=sessions.get(expected.titleToken.viewer());
+        if(live!=expected||!expected.titleActive||state.isEmpty()||!expected.titleToken.matches(state.orElseThrow().handle())
+                ||player.getOpenInventory().getTopInventory()!=expected.holder.getInventory()) return;
+        var data=Optional.ofNullable(expected.rollData);
+        String signature=data.map(UpgraderTitleRenderer.Data::signature).orElse("");
+        if(!signature.equals(expected.titleSignature)) {
+            expected.titleState=state.orElseThrow(); expected.titleSignature=signature; expected.titleRolling=false; expected.titleComplete=true;
+            sendTitle(player,expected,data.map(d->titleRenderer.preview(player,layout,d)).orElseGet(()->titleRenderer.empty(player,layout)));
+            return;
+        }
+        if(data.isEmpty()) { expected.titleRolling=false; expected.titleComplete=true; return; }
+        long elapsed=Math.max(0,titleTick-expected.titleStarted);
+        if(elapsed<layout.selectedHoldTicks()) {
+            sendTitle(player,expected,titleRenderer.preview(player,layout,data.orElseThrow())); return;
+        }
+        // The chance bar is already visible before click; skip its old fill phase and animate only the pointer.
+        var frame=layout.rollFrame(data.orElseThrow().targetBar(),expected.landingBar,
+                elapsed-layout.selectedHoldTicks()+layout.barFillTicks(),expected.titleRollSeed);
+        Component title=titleRenderer.animated(player,layout,data.orElseThrow(),frame);
+        boolean changed=!title.equals(expected.lastTitle); sendTitle(player,expected,title);
+        if(changed&&frame.pulse()) cue(player,runtime.snapshot().orElseThrow(),"title-pulse");
+        if(frame.complete()&&elapsed>=layout.selectedHoldTicks()+layout.arrowDurationTicks()+layout.selectedHoldTicks()) {
+            expected.titleRolling=false;expected.titleComplete=true;
+            var prepared=expected.pendingUpgrade;expected.pendingUpgrade=null;expected.rollData=null;
+            if(prepared!=null) {
+                try {
+                    var definition=runtime.snapshot().orElseThrow();upgrades.commit(player,definition,prepared);
+                    messages.send(player,prepared.success()?"gui-roll-success":"gui-roll-failure");
+                } catch(RuntimeException error) { report(error);messages.send(player,"gui-roll-commit-failed"); }
+                exit(player.getUniqueId(),null);
+            }
+        }
+    }
+    private void startTitleRoll(Player player,View view,GuiSessionStore.State state,UpgraderTitleLayout layout,
+                                UpgraderTitleRenderer.Data data,int landingBar,NativeTestUpgradeService.Prepared prepared) {
+        if(!view.titleActive||view.titleToken==null)throw new IllegalArgumentException("upgrade title packet unavailable");
+        view.titleState=state;view.titleSignature=data.signature();view.rollData=data;view.landingBar=landingBar;view.pendingUpgrade=prepared;
+        view.titleStarted=titleTick; view.titleRollSeed=ThreadLocalRandom.current().nextLong();
+        view.titleComplete=false; view.titleRolling=true;
+        sendTitle(player,view,titleRenderer.preview(player,layout,data));
+    }
+    private void sendTitle(Player player,View view,Component title) {
+        if(!view.titleActive||title.equals(view.lastTitle)) return;
+        forceTitle(player,view,title);
+    }
+    private void forceTitle(Player player,View view,Component title) {
+        if(!view.titleActive) return;
+        if(!titlePackets.send(player,view.titleToken,view.holder.getInventory(),title)) {
+            disableTitle(view,"the exact owned container was lost");
+            return;
+        }
+        view.lastTitle=title;
+    }
+    private void disableTitle(View view,String reason) {
+        if(view==null||!view.titleActive) return;
+        view.titleActive=false; view.titleRolling=false; view.titleComplete=true;
+        if(view.titleToken!=null) titlePackets.release(view.titleToken);
+        if(reason!=null) warnTitle(reason,null);
+    }
+    private void releaseTitle(View view) {
+        if(view!=null&&view.titleToken!=null) titlePackets.release(view.titleToken);
+        if(view!=null) view.titleActive=false;
+    }
+    private void warnTitle(String reason,RuntimeException error) {
+        if(titleWarning) return;
+        titleWarning=true;
+        String message="Dynamic inventory title disabled for this view: "+reason+". The preview remains usable.";
+        if(error==null) owner.getLogger().warning(message); else owner.getLogger().log(Level.WARNING,message,error);
     }
     private void sweep() {
         if(stopped) return;
@@ -258,6 +436,7 @@ public final class InventoryGuiService {
         }
     }
     private void closeOld(UUID viewer,View v,String message) {
+        releaseTitle(v);
         platform.player(viewer,p->{if(p.getOpenInventory().getTopInventory()==v.holder.getInventory()){p.closeInventory(); messages.send(p,message);}});
     }
     private void broken(Player player,GuiSessionStore.State state,RuntimeException error) {
@@ -278,7 +457,9 @@ public final class InventoryGuiService {
         for(var entry:List.copyOf(views.entrySet())) {
             Player p=owner.getServer().getPlayer(entry.getKey());
             if(p!=null&&p.getOpenInventory().getTopInventory()==entry.getValue().holder.getInventory()) p.closeInventory();
+            releaseTitle(entry.getValue());
         }
         views.clear(); pendingOpens.clear(); renderer.clear();
+        titlePackets.close();
     }
 }

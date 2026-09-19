@@ -4,78 +4,68 @@ config-version: 1
 id: 'profiles'
 title: '<dark_gray>Profiles · {page}</dark_gray>'
 matrix:
-  - '####I####'
-  - '#EEEEEEE#'
-  - '#EEEEEEE#'
-  - '#EEEEEEE#'
-  - '#EEEEEEE#'
-  - '<##HR##>X'
+  - '....I....'
+  - '.EEEEEEE.'
+  - '.EEEEEEE.'
+  - '.EEEEEEE.'
+  - '.EEEEEEE.'
+  - '<..HR..>X'
 symbols:
-  '#':
-    role: 'FILLER'
-    material: 'BLACK_STAINED_GLASS_PANE'
-    name: ' '
-    lore: []
-    item-model: ''
-    glow: false
-    action: 'NONE'
-    argument: ''
-    # custom-model-data: 10001  # Tùy chọn; ưu tiên item-model cho pack hiện đại.
   '<':
     role: 'BUTTON'
-    material: 'ARROW'
+    material: 'PAPER'
     name: '<yellow>Trang trước</yellow>'
     lore:
       - '<gray>Trang {page}/{pages}</gray>'
-    item-model: ''
+    item-model: 'thanhviet:empty'
     glow: false
     action: 'PREVIOUS_PAGE'
     argument: ''
     # custom-model-data: 10001  # Tùy chọn; ưu tiên item-model cho pack hiện đại.
   '>':
     role: 'BUTTON'
-    material: 'ARROW'
+    material: 'PAPER'
     name: '<yellow>Trang sau</yellow>'
     lore:
       - '<gray>Trang {page}/{pages}</gray>'
-    item-model: ''
+    item-model: 'thanhviet:empty'
     glow: false
     action: 'NEXT_PAGE'
     argument: ''
     # custom-model-data: 10001  # Tùy chọn; ưu tiên item-model cho pack hiện đại.
   'H':
     role: 'BUTTON'
-    material: 'OAK_DOOR'
+    material: 'PAPER'
     name: '<aqua>Về menu chính</aqua>'
     lore: []
-    item-model: ''
+    item-model: 'thanhviet:empty'
     glow: false
     action: 'BACK_MAIN'
     argument: ''
     # custom-model-data: 10001  # Tùy chọn; ưu tiên item-model cho pack hiện đại.
   'R':
     role: 'BUTTON'
-    material: 'SUNFLOWER'
+    material: 'PAPER'
     name: '<yellow>Làm mới</yellow>'
     lore: []
-    item-model: ''
+    item-model: 'thanhviet:empty'
     glow: false
     action: 'REFRESH'
     argument: ''
     # custom-model-data: 10001  # Tùy chọn; ưu tiên item-model cho pack hiện đại.
   'X':
     role: 'BUTTON'
-    material: 'BARRIER'
+    material: 'PAPER'
     name: '<red>Đóng</red>'
     lore: []
-    item-model: ''
+    item-model: 'thanhviet:empty'
     glow: false
     action: 'CLOSE'
     argument: ''
     # custom-model-data: 10001  # Tùy chọn; ưu tiên item-model cho pack hiện đại.
   'I':
     role: 'INFO'
-    material: 'BOOK'
+    material: 'PAPER'
     name: '<white>Chi tiết quote</white>'
     lore:
       - '<gray>Profile: {profile}</gray>'
@@ -83,21 +73,21 @@ symbols:
       - '<gray>Failure: {failure}</gray>'
       - '<yellow>{status}</yellow>'
       - '<gray>Cần có trước: {fee}</gray>'
-    item-model: ''
+    item-model: 'thanhviet:empty'
     glow: false
     action: 'NONE'
     argument: ''
     # custom-model-data: 10001  # Tùy chọn; ưu tiên item-model cho pack hiện đại.
   'E':
     role: 'PROFILE_ENTRY'
-    material: 'LIME_DYE'
+    material: 'PAPER'
     name: '<green>Profile: {id}</green>'
     lore:
       - '<gray>Chance multiplier: ×{multiplier}</gray>'
       - '<gray>Fee multiplier: ×{fee_multiplier}</gray>'
       - '<gray>{failure}</gray>'
       - '<yellow>{selected}</yellow>'
-    item-model: ''
+    item-model: 'thanhviet:empty'
     glow: false
     action: 'SELECT_PROFILE'
     argument: ''

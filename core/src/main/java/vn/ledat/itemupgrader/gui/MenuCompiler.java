@@ -9,11 +9,12 @@ public final class MenuCompiler {
             if (id == null || !id.matches("[a-z0-9_-]{1,64}") || title == null || title.length() > 2048
                     || size < 9 || size > 54 || size % 9 != 0) throw new IllegalArgumentException("invalid compiled menu header");
             slots = Map.copyOf(slots);
-            if (slots.size() != size) throw new IllegalArgumentException("compiled menu must cover every top slot");
+            if (slots.keySet().stream().anyMatch(slot -> slot == null || slot < 0 || slot >= size))
+                throw new IllegalArgumentException("compiled menu slot outside inventory");
             int foundSource = -1;
             for (int slot = 0; slot < size; slot++) {
                 var element = slots.get(slot);
-                if (element == null) throw new IllegalArgumentException("compiled menu slot missing: " + slot);
+                if (element == null) continue;
                 if (element.role() == MenuDefinition.Role.SOURCE_INPUT) {
                     if (foundSource != -1) throw new IllegalArgumentException("multiple compiled source selectors");
                     foundSource = slot;
@@ -32,6 +33,7 @@ public final class MenuCompiler {
             if (line.length() != 9) throw new IllegalArgumentException("menus." + definition.id() + ".matrix[" + row + "]: require 9 ASCII symbols");
             for (int column = 0; column < 9; column++) {
                 char symbol = line.charAt(column);
+                if (symbol == '.') continue; // Reserved empty inventory slot; no ItemStack is rendered.
                 if (symbol < 33 || symbol > 126) throw new IllegalArgumentException("menu symbols must be printable non-space ASCII");
                 var element = definition.symbols().get(symbol);
                 if (element == null) throw new IllegalArgumentException("undefined symbol: " + symbol);

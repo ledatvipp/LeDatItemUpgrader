@@ -6,11 +6,12 @@ import vn.ledat.itemupgrader.catalog.CatalogQuery;
 
 /** UI selection only: a storage slot REFERENCE, never an escrow or item owner. */
 public record GuiContext(Screen screen, int page, CatalogQuery.Sort sort, String category,
-                         int sourceSlot, String targetId, String profileId, List<String> boosts) {
+                         int sourceSlot, int selectedAmount, String targetId, String profileId, List<String> boosts) {
     public enum Screen { MAIN, CATALOG, PROFILES, BOOSTS }
     public GuiContext {
         Objects.requireNonNull(screen); Objects.requireNonNull(sort);
-        if (page < 1 || page > 10000 || sourceSlot < -1 || sourceSlot > 35) throw new IllegalArgumentException("invalid GUI page/source slot");
+        if (page < 1 || page > 10000 || sourceSlot < -1 || sourceSlot > 35 || selectedAmount < 1 || selectedAmount > 4096)
+            throw new IllegalArgumentException("invalid GUI page/source slot/amount");
         for (String id : List.of(category, targetId, profileId))
             if (!id.isEmpty() && !id.matches("[a-z0-9][a-z0-9_.-]{0,63}")) throw new IllegalArgumentException("invalid GUI selection id");
         boosts = List.copyOf(boosts);
@@ -18,12 +19,13 @@ public record GuiContext(Screen screen, int page, CatalogQuery.Sort sort, String
                 || boosts.stream().anyMatch(id -> !id.matches("[a-z0-9][a-z0-9_.-]{0,63}"))) throw new IllegalArgumentException("invalid GUI boosts");
         boosts = boosts.stream().sorted().toList();
     }
-    public static GuiContext initial(int slot) { return new GuiContext(Screen.MAIN, 1, CatalogQuery.Sort.RECOMMENDED, "", slot, "", "", List.of()); }
-    public GuiContext screen(Screen next) { return new GuiContext(next, 1, sort, category, sourceSlot, targetId, profileId, boosts); }
-    public GuiContext page(int next) { return new GuiContext(screen, next, sort, category, sourceSlot, targetId, profileId, boosts); }
-    public GuiContext target(String id) { return new GuiContext(screen, page, sort, category, sourceSlot, id, profileId, boosts); }
-    public GuiContext profile(String id) { return new GuiContext(screen, page, sort, category, sourceSlot, targetId, id, boosts); }
-    public GuiContext boosts(List<String> ids) { return new GuiContext(screen, page, sort, category, sourceSlot, targetId, profileId, ids); }
-    public GuiContext sort(CatalogQuery.Sort next) { return new GuiContext(screen, 1, next, category, sourceSlot, targetId, profileId, boosts); }
-    public GuiContext category(String next) { return new GuiContext(screen, 1, sort, next, sourceSlot, targetId, profileId, boosts); }
+    public static GuiContext initial(int slot) { return new GuiContext(Screen.MAIN, 1, CatalogQuery.Sort.RECOMMENDED, "", slot, 1, "", "", List.of()); }
+    public GuiContext screen(Screen next) { return new GuiContext(next, 1, sort, category, sourceSlot, selectedAmount, targetId, profileId, boosts); }
+    public GuiContext page(int next) { return new GuiContext(screen, next, sort, category, sourceSlot, selectedAmount, targetId, profileId, boosts); }
+    public GuiContext amount(int next) { return new GuiContext(screen, page, sort, category, sourceSlot, next, targetId, profileId, boosts); }
+    public GuiContext target(String id) { return new GuiContext(screen, page, sort, category, sourceSlot, selectedAmount, id, profileId, boosts); }
+    public GuiContext profile(String id) { return new GuiContext(screen, page, sort, category, sourceSlot, selectedAmount, targetId, id, boosts); }
+    public GuiContext boosts(List<String> ids) { return new GuiContext(screen, page, sort, category, sourceSlot, selectedAmount, targetId, profileId, ids); }
+    public GuiContext sort(CatalogQuery.Sort next) { return new GuiContext(screen, 1, next, category, sourceSlot, selectedAmount, targetId, profileId, boosts); }
+    public GuiContext category(String next) { return new GuiContext(screen, 1, sort, next, sourceSlot, selectedAmount, targetId, profileId, boosts); }
 }

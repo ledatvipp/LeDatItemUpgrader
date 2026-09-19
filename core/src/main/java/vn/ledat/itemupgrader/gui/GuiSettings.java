@@ -23,7 +23,7 @@ public record GuiSettings(boolean enabled, int maximumSessions, Duration idleTim
         bounded(clickCooldown, Duration.ofMillis(100), Duration.ofSeconds(3));
         bounded(openCooldown, Duration.ofMillis(250), Duration.ofSeconds(10));
         sounds = Map.copyOf(sounds);
-        if (!java.util.Set.of("open", "click", "error", "close").containsAll(sounds.keySet())) throw new IllegalArgumentException("unknown GUI sound cue");
+        if (!java.util.Set.of("open", "click", "error", "close", "title-pulse").containsAll(sounds.keySet())) throw new IllegalArgumentException("unknown GUI sound cue");
     }
     private static void bounded(Duration d, Duration min, Duration max) {
         Objects.requireNonNull(d);

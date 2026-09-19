@@ -27,7 +27,6 @@ public record HistorySettings(boolean enabled,boolean placeholdersEnabled,int ma
             throw new IllegalArgumentException("history is read-only; invalid role/action/argument");
         for(var a:List.of(MenuDefinition.Action.NEXT_PAGE,MenuDefinition.Action.PREVIOUS_PAGE,MenuDefinition.Action.CLOSE,MenuDefinition.Action.REFRESH))
             if(menu.slots().values().stream().noneMatch(e->e.action()==a))throw new IllegalArgumentException("history navigation missing "+a);
-        if(menu.slots().values().stream().noneMatch(e->e.role()==MenuDefinition.Role.FILLER))throw new IllegalArgumentException("history filler required");
     }
     private static void bound(Duration d,int min,int max) {
         if(d==null||d.compareTo(Duration.ofSeconds(min))<0||d.compareTo(Duration.ofSeconds(max))>0)throw new IllegalArgumentException("history duration bounds");

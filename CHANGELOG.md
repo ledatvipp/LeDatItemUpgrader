@@ -1,5 +1,26 @@
 # Changelog — current 0.9.0-phase09a
 
+## Unreleased — scoped animated inventory title packets
+
+- Thêm native test upgrade flow opt-in: revalidate quote/item/phí, server-side SecureRandom ticket, arrow chỉ chạy sau click, rồi commit CLEAN + DESTROY/KEEP với economy rollback khi debit bị từ chối.
+- Bỏ toàn bộ glass filler; slot `.` để trống thật, icon còn lại dùng `PAPER` + `thanhviet:empty`.
+- Sửa title refresh làm trống GUI: mỗi `OPEN_WINDOW` giờ resync exact inventory ngay sau khi đổi title.
+- Title refresh đi qua pipeline PacketEvents bình thường để CraftEngine/Nexo/plugin Resource Pack khác render được `<shift>`/`<image>`; fence đã disarm nên không capture nhầm packet refresh.
+- Thêm optional CraftEngine parser bridge cho tag `<shift>`/`<image>`; VietHUD/PAPI expansion vẫn chạy trước, Nexo/literal là fallback khi CraftEngine không có.
+- Áp title RP chuẩn cho main upgrader: CHƯA CÓ → giá trị/amount/chance bar cập nhật ngay theo số lượng; arrow chỉ xuất hiện sau click, chạy ngẫu nhiên chậm hơn rồi cubic ease-out tới kết quả.
+- Chance trên title cập nhật theo quote hiện tại với định dạng cố định hai số lẻ (`2.46%`, `100.00%`); bar vẫn ánh xạ từ xác suất gốc chưa làm tròn.
+- Config `menus/upgrader.yml` cũ thiếu `title-display` tự nhận bộ title image chuẩn thay vì rơi về `Item Upgrader`.
+- Bỏ cổng kích hoạt phụ thuộc Nexo/PAPI: title packet main menu luôn chạy; hai plugin này chỉ tham gia resolve khi hiện diện.
+- Main layout dùng raw slot source1, target7, confirm36–38 và amount39–44; amount bước 2/4/8/12/16/20, trái tăng/phải giảm trong stack thật.
+- Thêm Nexo glyph resolver + PAPI/VietHUD expansion có fallback title plain; config cũ không bị tự ghi đè và cần merge `title-display` thủ công.
+- Main GUI có packet fence riêng theo viewer/session/view/inventory; chỉ bắt đúng `OPEN_WINDOW` ban đầu, không nghe `WINDOW_ITEMS` và không cancel packet GUI khác.
+- Sửa lỗi mở menu báo nhầm `gui-load-failed` khi VietHUD/Nexo biến đổi `Component` title: capture hai giai đoạn LOWEST→MONITOR chỉ được arm đồng bộ quanh đúng `openInventory` của plugin, không còn so title tuyệt đối; lỗi title chỉ tắt animation của view đó và không đóng preview.
+- Port cơ chế đổi title bằng `OPEN_WINDOW` từ zMenu qua PacketEvents 2.13+, giữ Adventure component/custom font và cùng container id/type.
+- Không dùng listener lưu mọi GUI của zMenu: chỉ capture đúng một packet trong lúc mở `AnimationHolder`; không nghe/cancel `WINDOW_ITEMS`, không sửa GUI plugin khác.
+- Packet title refresh cho phép listener Resource Pack xử lý title, sau đó resync item; session/token/incarnation/top-inventory identity đều phải còn khớp trước mỗi lần gửi.
+- Thêm `title-animation.titles` + `interval-ticks` (1–20), round-robin/backpressure hiện có vẫn giới hạn callback và bỏ frame trễ thay vì replay.
+- Thêm packet fence regression, title-frame regression và release-JAR guard không bundle PacketEvents.
+
 ## 0.9.0-phase09a — 2026-09-17 — partial Phase 9
 
 - Shared repository bundle luôn nối progress hook vào journal; schema preflight/readiness cho 12 bảng/4 index.

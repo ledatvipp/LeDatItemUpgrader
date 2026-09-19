@@ -1,33 +1,39 @@
-# Phase 6: native inventory PREVIEW, không nhận custody của item thật.
+# GUI chọn item theo slot; chế độ test native chỉ commit sau khi roll kết thúc.
 # SOURCE_INPUT là role tương thích blueprint cũ; runtime REFERENCE_ONLY chỉ CHỌN slot.
 # Không kéo/thả item vào GUI. Mọi item phía trên là bản hiển thị bị khóa.
-# Matrix 1..6 hàng, mỗi hàng 9 ký tự. Role/action mới được validate khi reload.
+# Matrix 1..6 hàng, mỗi hàng 9 ký tự; dấu `.` là ô trống, không tạo item.
 # Các slot RP vẫn là lưới inventory 18px; item-model/CMD/title glyph chỉ thay presentation.
 # File đang tồn tại trên server được giữ nguyên; xem docs/PHASE06.md để merge layout mới.
 config-version: 1
 id: 'upgrader'
 title: '<dark_gray>Item Upgrader</dark_gray>'
+# Title Resource Pack chuẩn. `{percent}` cố ý được giữ nguyên bên trong placeholder
+# VietHUD để biểu diễn ký tự %, không phải placeholder của ItemUpgrader.
+title-display:
+  enabled: true
+  visits-per-tick: 32
+  selected-hold-ticks: 8
+  bar-frames: 154
+  bar-fill-ticks: 24
+  arrow-start-shift: -157
+  arrow-end-shift: -4
+  arrow-duration-ticks: 72
+  arrow-sound-interval-ticks: 2
+  empty: '<white><shift:-8><image:thanhviet:menu/item_upgrade/main><shift:-183>%viethud_thanhviet:bossbar/35_80_CENTER_<black>CHƯA CÓ%<shift:-80>%viethud_thanhviet:bossbar/44_80_CENTER_<black>ITEM%<shift:28>%viethud_thanhviet:bossbar/35_80_CENTER_<black>CHƯA CÓ%<shift:-80>%viethud_thanhviet:bossbar/44_80_CENTER_<black>ITEM%'
+  selected: '<white><shift:-8><image:thanhviet:menu/item_upgrade/main><shift:-183>%viethud_thanhviet:bossbar/35_80_CENTER_<black>GIÁ TRỊ%<shift:-80>%viethud_thanhviet:bossbar/44_80_CENTER_<black>{source_value}%<shift:28>%viethud_thanhviet:bossbar/35_80_CENTER_<black>GIÁ TRỊ%<shift:-80>%viethud_thanhviet:bossbar/44_80_CENTER_<black>{target_value}%<shift:-63><image:thanhviet:menu/item_upgrade/amount{amount_state}><shift:-36>%viethud_thanhviet:bossbar/54_24_CENTER_<white>{amount}%'
+  bar: '<white><shift:-8><image:thanhviet:menu/item_upgrade/main><shift:-183>%viethud_thanhviet:bossbar/35_80_CENTER_<black>GIÁ TRỊ%<shift:-80>%viethud_thanhviet:bossbar/44_80_CENTER_<black>{source_value}%<shift:28>%viethud_thanhviet:bossbar/35_80_CENTER_<black>GIÁ TRỊ%<shift:-80>%viethud_thanhviet:bossbar/44_80_CENTER_<black>{target_value}%<shift:-63><image:thanhviet:menu/item_upgrade/amount{amount_state}><shift:-36>%viethud_thanhviet:bossbar/54_24_CENTER_<white>{amount}%<shift:-89>%viethud_thanhviet:itemupgrade_40_CENTER_<white>{chance}{percent}%<shift:-100><image:thanhviet:menu/item_upgrade/bar_full:{bar}:0>'
+  ready: '<white><shift:-8><image:thanhviet:menu/item_upgrade/main><shift:-183>%viethud_thanhviet:bossbar/35_80_CENTER_<black>GIÁ TRỊ%<shift:-80>%viethud_thanhviet:bossbar/44_80_CENTER_<black>{source_value}%<shift:28>%viethud_thanhviet:bossbar/35_80_CENTER_<black>GIÁ TRỊ%<shift:-80>%viethud_thanhviet:bossbar/44_80_CENTER_<black>{target_value}%<shift:-63><image:thanhviet:menu/item_upgrade/amount{amount_state}><shift:-36>%viethud_thanhviet:bossbar/54_24_CENTER_<white>{amount}%<shift:-89>%viethud_thanhviet:itemupgrade_40_CENTER_<white>{chance}{percent}%<shift:-100><image:thanhviet:menu/item_upgrade/bar_full:{bar}:0><shift:{arrow_shift}><image:thanhviet:menu/item_upgrade/arrow>'
 matrix:
-  - '#########'
-  - '#S##C##T#'
-  - '#########'
-  - '#123#IBP#'
-  - '####U##R#'
-  - '####X####'
+  - '.S.....T.'
+  - '.........'
+  - '.........'
+  - '.........'
+  - 'UUU123456'
+  - '....X....'
 symbols:
-  '#':
-    role: 'FILLER'
-    material: 'BLACK_STAINED_GLASS_PANE'
-    name: ' '
-    lore: []
-    item-model: ''
-    glow: false
-    action: 'NONE'
-    argument: ''
-    # custom-model-data: 10001  # Tùy chọn; ưu tiên item-model cho pack hiện đại.
   'S':
     role: 'SOURCE_INPUT'
-    material: 'HOPPER'
+    material: 'PAPER'
     name: '<yellow>Nguồn: {source}</yellow>'
     lore:
       - '<gray>Storage slot: {source_slot} | Số lượng: {amount}</gray>'
@@ -35,7 +41,7 @@ symbols:
       - '<gray>Click phải: bỏ chọn, không xóa item.</gray>'
       - '<gray>Hoặc click item trong túi phía dưới.</gray>'
       - '<gold>Item thật luôn nằm trong túi của bạn.</gold>'
-    item-model: ''
+    item-model: 'thanhviet:empty'
     glow: false
     action: 'SOURCE_INPUT'
     argument: ''
@@ -47,125 +53,97 @@ symbols:
     lore:
       - '<gray>Value: {target_value}</gray>'
       - '<gray>Click để mở catalog được phép.</gray>'
-    item-model: ''
+    item-model: 'thanhviet:empty'
     glow: false
     action: 'OPEN_CATALOG'
     argument: ''
     # custom-model-data: 10001  # Tùy chọn; ưu tiên item-model cho pack hiện đại.
-  'C':
-    role: 'CHANCE'
-    material: 'CLOCK'
-    name: '<gold>Tỷ lệ preview: {chance}</gold>'
-    lore:
-      - '<gray>Source value: {source_value}</gray>'
-      - '<gray>Target value: {target_value}</gray>'
-      - '<yellow>{status}</yellow>'
-    item-model: ''
-    glow: false
-    action: 'NONE'
-    argument: ''
-    # custom-model-data: 10001  # Tùy chọn; ưu tiên item-model cho pack hiện đại.
-  'I':
-    role: 'INFO'
-    material: 'BOOK'
-    name: '<white>Chi tiết quote</white>'
-    lore:
-      - '<gray>Profile: {profile}</gray>'
-      - '<gray>Boosts: {boosts}</gray>'
-      - '<gray>Failure: {failure}</gray>'
-      - '<yellow>{status}</yellow>'
-      - '<gray>Cần có trước: {fee}</gray>'
-    item-model: ''
-    glow: false
-    action: 'NONE'
-    argument: ''
-    # custom-model-data: 10001  # Tùy chọn; ưu tiên item-model cho pack hiện đại.
   '1':
     role: 'BUTTON'
-    material: 'LIME_DYE'
-    name: '<green>Standard</green>'
+    material: 'PAPER'
+    name: '<green>+2 / -2</green>'
     lore:
-      - '<gray>Trạng thái: {selected}</gray>'
-    item-model: ''
+      - '<gray>Trái: tăng 2 | Phải: giảm 2</gray>'
+    item-model: 'thanhviet:empty'
     glow: false
-    action: 'SELECT_PROFILE'
-    argument: 'standard'
+    action: 'ADJUST_AMOUNT'
+    argument: '2'
     # custom-model-data: 10001  # Tùy chọn; ưu tiên item-model cho pack hiện đại.
   '2':
     role: 'BUTTON'
-    material: 'LIGHT_BLUE_DYE'
-    name: '<aqua>Safe</aqua>'
+    material: 'PAPER'
+    name: '<aqua>+4 / -4</aqua>'
     lore:
-      - '<gray>Trạng thái: {selected}</gray>'
-    item-model: ''
+      - '<gray>Trái: tăng 4 | Phải: giảm 4</gray>'
+    item-model: 'thanhviet:empty'
     glow: false
-    action: 'SELECT_PROFILE'
-    argument: 'safe'
+    action: 'ADJUST_AMOUNT'
+    argument: '4'
     # custom-model-data: 10001  # Tùy chọn; ưu tiên item-model cho pack hiện đại.
   '3':
     role: 'BUTTON'
-    material: 'RED_DYE'
-    name: '<red>Risky</red>'
+    material: 'PAPER'
+    name: '<yellow>+8 / -8</yellow>'
     lore:
-      - '<gray>Trạng thái: {selected}</gray>'
-    item-model: ''
+      - '<gray>Trái: tăng 8 | Phải: giảm 8</gray>'
+    item-model: 'thanhviet:empty'
     glow: false
-    action: 'SELECT_PROFILE'
-    argument: 'risky'
+    action: 'ADJUST_AMOUNT'
+    argument: '8'
     # custom-model-data: 10001  # Tùy chọn; ưu tiên item-model cho pack hiện đại.
-  'B':
+  '4':
     role: 'BUTTON'
-    material: 'BLAZE_POWDER'
-    name: '<gold>Booster / Bảo hộ</gold>'
+    material: 'PAPER'
+    name: '<gold>+12 / -12</gold>'
     lore:
-      - '<gray>Đã chọn: {boosts}</gray>'
-    item-model: ''
+      - '<gray>Trái: tăng 12 | Phải: giảm 12</gray>'
+    item-model: 'thanhviet:empty'
     glow: false
-    action: 'OPEN_BOOSTS'
-    argument: ''
+    action: 'ADJUST_AMOUNT'
+    argument: '12'
     # custom-model-data: 10001  # Tùy chọn; ưu tiên item-model cho pack hiện đại.
-  'P':
+  '5':
     role: 'BUTTON'
-    material: 'COMPASS'
-    name: '<aqua>Tất cả profiles</aqua>'
+    material: 'PAPER'
+    name: '<gold>+16 / -16</gold>'
     lore:
-      - '<gray>Chỉ hiện profile đủ điều kiện.</gray>'
-    item-model: ''
+      - '<gray>Trái: tăng 16 | Phải: giảm 16</gray>'
+    item-model: 'thanhviet:empty'
     glow: false
-    action: 'OPEN_PROFILES'
-    argument: ''
+    action: 'ADJUST_AMOUNT'
+    argument: '16'
+    # custom-model-data: 10001  # Tùy chọn; ưu tiên item-model cho pack hiện đại.
+  '6':
+    role: 'BUTTON'
+    material: 'PAPER'
+    name: '<gold>+20 / -20</gold>'
+    lore:
+      - '<gray>Trái: tăng 20 | Phải: giảm 20</gray>'
+    item-model: 'thanhviet:empty'
+    glow: false
+    action: 'ADJUST_AMOUNT'
+    argument: '20'
     # custom-model-data: 10001  # Tùy chọn; ưu tiên item-model cho pack hiện đại.
   'U':
     role: 'BUTTON'
-    material: 'ANVIL'
-    name: '<gold>Nâng cấp — đang khóa giao dịch</gold>'
+    material: 'PAPER'
+    name: '<gold>Nâng cấp</gold>'
     lore:
       - '<yellow>{status}</yellow>'
       - '<gray>Tỷ lệ preview: {chance}</gray>'
-      - '<gray>Phase 6 chưa tiêu hao hay phát item.</gray>'
-    item-model: ''
+      - '<gray>Click để bắt đầu roll; không đóng menu khi mũi tên đang chạy.</gray>'
+    item-model: 'thanhviet:empty'
     glow: false
     action: 'UPGRADE'
     argument: ''
     # custom-model-data: 10001  # Tùy chọn; ưu tiên item-model cho pack hiện đại.
-  'R':
-    role: 'BUTTON'
-    material: 'SUNFLOWER'
-    name: '<yellow>Làm mới preview</yellow>'
-    lore:
-      - '<gray>Tính lại bằng item và quyền hiện tại.</gray>'
-    item-model: ''
-    glow: false
-    action: 'REFRESH'
-    argument: ''
-    # custom-model-data: 10001  # Tùy chọn; ưu tiên item-model cho pack hiện đại.
   'X':
     role: 'BUTTON'
-    material: 'BARRIER'
+    material: 'PAPER'
     name: '<red>Đóng</red>'
     lore:
       - '<gray>Chỉ bỏ selection, không cần hoàn item.</gray>'
-    item-model: ''
+    item-model: 'thanhviet:empty'
     glow: false
     action: 'CLOSE'
     argument: ''

@@ -35,7 +35,7 @@ for path in sorted(RES.rglob('*.yml')):
     require(isinstance(loaded, dict), f'{path}: root mapping required')
     files[path.relative_to(RES).as_posix()] = loaded
 
-require(files['config.yml']['features']['upgrades-enabled'] is False, 'transaction must remain disabled')
+require(files['config.yml']['features']['upgrades-enabled'] is True, 'native test upgrade flow enabled')
 require(files['config.yml']['features']['packet-renderer-enabled'] is False, 'packet renderer must remain disabled')
 require(files['config.yml']['storage']['mode'] == 'PLATFORM_SHARED', 'unexpected storage mode')
 for name, data in files.items():
@@ -62,8 +62,8 @@ require(all(len(row) == 9 for row in menu['matrix']), 'each row must have 9 slot
 source_count = 0
 for row in menu['matrix']:
     for symbol in row:
-        require(symbol in menu['symbols'], f'undefined symbol: {symbol}')
-        source_count += menu['symbols'][symbol]['role'] == 'SOURCE_INPUT'
+        require(symbol == '.' or symbol in menu['symbols'], f'undefined symbol: {symbol}')
+        source_count += symbol != '.' and menu['symbols'][symbol]['role'] == 'SOURCE_INPUT'
 require(source_count == 1, 'exactly one source reference selector')
 for element in menu['symbols'].values():
     require('name' in element and 'lore' in element, 'GUI text must be configured')
@@ -71,7 +71,7 @@ for element in menu['symbols'].values():
         require(bool(element.get('argument')), 'selection needs argument')
 
 plugin = files['plugin.yml']
-require(plugin['depend'] == ['LeDatPlatform'], 'hard dependency mismatch')
+require(plugin['depend'] == ['LeDatPlatform', 'packetevents'], 'hard dependency mismatch')
 require('folia-supported' not in plugin, 'Folia not verified')
 main = ROOT / 'paper/src/main/java' / (plugin['main'].replace('.', '/') + '.java')
 require(main.is_file(), 'main class source absent')
@@ -215,7 +215,8 @@ for override in files['upgrades/profiles.yml']['path-profile-rules']:
     require(override['default-profile'] in override['allowed-profiles'], 'path default must be allowed')
 # The supplied empty condition list intentionally makes no dependency on an installed PAPI expansion.
 require(len(conditions) <= 32, 'condition budget')
-require(plugin.get('softdepend') == ['PlaceholderAPI'], 'PAPI must be optional, not a hard dependency')
+require(plugin.get('softdepend') == ['PlaceholderAPI','CraftEngine','Nexo'],
+        'PAPI/CraftEngine/Nexo must remain optional presentation dependencies')
 require('ledatitemupgrader.admin.quote' in plugin['permissions'], 'quote permission')
 require(plugin['permissions']['ledatitemupgrader.bonus.vip']['default'] is False, 'bonus default permission')
 for sub in ('quote','profiles','boosts'):
@@ -280,7 +281,7 @@ require(1 <= settings['request-timeout-seconds'] <= 30, 'bounded preview lifetim
 require(100 <= settings['click-cooldown-ms'] <= 3000, 'bounded click cooldown')
 require(250 <= settings['open-cooldown-ms'] <= 10000, 'bounded open cooldown')
 require(1024 <= settings['maximum-icon-bytes'] <= 65536, 'bounded native preview bytes')
-require(set(settings['sounds']).issubset({'open','click','error','close'}), 'known sound cues')
+require(set(settings['sounds']).issubset({'open','click','error','close','title-pulse'}), 'known sound cues')
 for cue in settings['sounds'].values():
     require(not cue['key'] or re.fullmatch(r'[a-z0-9_.-]+:[a-z0-9_./-]+', cue['key']), 'sound key syntax, registry check needs runtime')
     require(Decimal(cue['volume']).is_finite() and Decimal('0') <= Decimal(cue['volume']) <= Decimal('2'), 'sound volume bounds')
@@ -290,13 +291,13 @@ roles = {s.strip() for s in re.search(r'enum Role\s*\{([^}]+)\}', model).group(1
 actions = {s.strip() for s in re.search(r'enum Action\s*\{([^}]+)\}', model).group(1).split(',')}
 expected_roles = {'catalog':'CATALOG_ENTRY','profiles':'PROFILE_ENTRY','boosts':'BOOST_ENTRY'}
 dynamic_actions = {'CATALOG_ENTRY':'SELECT_TARGET','PROFILE_ENTRY':'SELECT_PROFILE','BOOST_ENTRY':'TOGGLE_BOOST'}
-allowed_placeholders = {'chance','source_value','target_value','source','target','profile','fee','failure','source_slot','item','amount','value','id','multiplier','fee_multiplier','points','page','pages','category','sort','boosts','status','selected'}
+allowed_placeholders = {'chance','source_value','target_value','source','target','profile','fee','failure','source_slot','item','amount','amount_state','bar','arrow_shift','percent','value','id','multiplier','fee_multiplier','points','page','pages','category','sort','boosts','status','selected'}
 for name in ('upgrader','catalog','profiles','boosts'):
     menu=files[f'menus/{name}.yml']
     require(1 <= len(menu['matrix']) <= 6 and all(len(row)==9 for row in menu['matrix']), f'{name} grid')
-    elements=[menu['symbols'][symbol] for row in menu['matrix'] for symbol in row]
+    elements=[menu['symbols'][symbol] for row in menu['matrix'] for symbol in row if symbol != '.']
     require(sum(e['role']=='SOURCE_INPUT' for e in elements) == (1 if name=='upgrader' else 0), f'{name} source reference count')
-    require(any(e['role']=='FILLER' for e in elements), f'{name} fallback filler')
+    require(all(symbol == '.' or symbol in menu['symbols'] for row in menu['matrix'] for symbol in row), f'{name} defined or empty slots')
     require(any(e['action']=='CLOSE' for e in elements), f'{name} close')
     if name in expected_roles:
         require(1 <= sum(e['role']==expected_roles[name] for e in elements) <= 45, f'{name} entry count')
@@ -304,6 +305,7 @@ for name in ('upgrader','catalog','profiles','boosts'):
     for e in menu['symbols'].values():
         require(e['role'] in roles and e['action'] in actions, f'{name} registered role/action')
         require(re.fullmatch('[A-Z][A-Z0-9_]{0,63}', e['material']), f'{name} material syntax')
+        require(e['material'] == 'PAPER' and e['item-model'] == 'thanhviet:empty', f'{name} standard empty model')
         require(type(e['glow']) is bool and isinstance(e['name'],str) and isinstance(e['lore'],list), f'{name} presentation types')
         require(not e['item-model'] or re.fullmatch(r'[a-z0-9_.-]+:[a-z0-9_./-]+', e['item-model']), f'{name} model key')
         if 'custom-model-data' in e: require(type(e['custom-model-data']) is int and e['custom-model-data']>=0, f'{name} model data')
@@ -313,8 +315,19 @@ for name in ('upgrader','catalog','profiles','boosts'):
         elif e['action']=='TOGGLE_BOOST': require(e['argument'] in {b['id'] for b in boosts}, f'{name} boost reference')
         for text in [menu['title'],e['name'],*e['lore']]:
             require(set(re.findall(r'\{([a-z_]+)\}',text)).issubset(allowed_placeholders), f'{name} supported UI placeholders')
+title_display=files['menus/upgrader.yml']['title-display']
+require(title_display['enabled'] is True and 1 <= title_display['visits-per-tick'] <= 128, 'bounded main title packet work')
+require(title_display['bar-frames'] == 154 and title_display['arrow-start-shift'] == -157 and title_display['arrow-end-shift'] == -4, '154-step bar and exact arrow endpoints')
+require(1 <= title_display['bar-fill-ticks'] <= 200 and 1 <= title_display['arrow-duration-ticks'] <= 400, 'bounded title motion')
+require('{arrow_shift}' in title_display['ready'] and 'bar_full:{bar}:0' in title_display['ready'], 'ready title has generated arrow and bar')
+require('amount{amount_state}' in title_display['selected'] and '{amount}' in title_display['selected'], 'selected title has four-state amount display')
+upgrader_slots=[None if symbol == '.' else files['menus/upgrader.yml']['symbols'][symbol]
+                for row in files['menus/upgrader.yml']['matrix'] for symbol in row]
+require(upgrader_slots[1]['role']=='SOURCE_INPUT' and upgrader_slots[7]['role']=='TARGET', 'source/target exact slots')
+require(all(upgrader_slots[slot]['action']=='UPGRADE' for slot in range(36,39)), 'upgrade exact slots 36..38')
+require([upgrader_slots[slot]['argument'] for slot in range(39,45)] == ['2','4','8','12','16','20'], 'amount exact slots 39..44')
 messages=files['messages.yml']
-for key in ('help-menu','gui-opened-preview','gui-transactions-locked','gui-cursor-not-empty','gui-mode-denied','gui-selected','gui-not-selected','gui-icon-fallback','gui-cost-line','gui-preview-only-lore'):
+for key in ('help-menu','gui-opened-preview','gui-transactions-locked','gui-roll-started','gui-roll-success','gui-roll-failure','gui-roll-commit-failed','gui-cursor-not-empty','gui-mode-denied','gui-selected','gui-not-selected','gui-icon-fallback','gui-cost-line','gui-preview-only-lore','gui-fee-live-warning'):
     require(key in messages,f'GUI message {key}')
 for status in ('loading','need-source','preview','resources-missing','quote-denied','catalog-source-rejected','catalog-path-denied','catalog-no-path','catalog-no-targets','catalog-page-out-of-range','empty-list','error','expired'):
     require('gui-state-'+status in messages, f'GUI state {status}')
@@ -323,7 +336,9 @@ for key in ('recommended','value-asc','value-desc','id'): require('gui-sort-'+ke
 for path in (ROOT/'paper/src/main/java/vn/ledat/itemupgrader/paper/gui').glob('*.java'):
     text=path.read_text(encoding='utf-8')
     require(not re.search(r'\.(withdraw|deposit|removeItem|addItem|dispatchCommand|setItemOnCursor|setCursor)\s*\(',text), f'no live side effect API in {path.name}')
-    require(not re.search(r'import vn\.ledat\.itemupgrader\.(transaction|output|failure)\.',text), f'GUI no live engine coupling {path.name}')
+    require(not re.search(r'import vn\.ledat\.itemupgrader\.(?:output|failure)\.',text)
+            and not re.search(r'import vn\.ledat\.itemupgrader\.transaction\.(?:UpgradeTransactionEngine|EffectPort)',text),
+            f'GUI no unsafe live engine/effect coupling {path.name}')
     for key in re.findall(r'messages\.(?:send|component)\([^\n]*?"(gui-[a-z-]+)"',text):
         if not key.endswith('-'): require(key in messages,f'GUI literal message {key}')
 renderer=(ROOT/'paper/src/main/java/vn/ledat/itemupgrader/paper/gui/GuiRenderer.java').read_text(encoding='utf-8')
@@ -331,6 +346,12 @@ require('visualProjection(decoded,snapshot.facts().amount())' in renderer, 'icon
 projection=renderer.split('private static ItemStack visualProjection',1)[1].split('private String plain',1)[0]
 require('new ItemStack' in projection and 'getPersistentDataContainer' not in projection, 'projection deliberately excludes raw PDC')
 require('setItemModel' in projection and 'setCustomModelDataComponent' in projection, 'cosmetic model bridge')
+gui_service=(ROOT/'paper/src/main/java/vn/ledat/itemupgrader/paper/gui/InventoryGuiService.java').read_text(encoding='utf-8')
+require('titleRenderer.active()' not in gui_service, 'main packet title cannot be gated by an optional glyph plugin')
+title_renderer=(ROOT/'paper/src/main/java/vn/ledat/itemupgrader/paper/gui/UpgraderTitleRenderer.java').read_text(encoding='utf-8')
+require('PACK_TAGS' in title_renderer and 'nexo.orElse(PACK_TAGS)' in title_renderer, 'pack tags remain active without Nexo')
+config_loader=(ROOT/'paper/src/main/java/vn/ledat/itemupgrader/paper/config/ConfigLoader.java').read_text(encoding='utf-8')
+require('Optional.of(UpgraderTitleLayout.standard())' in config_loader, 'old upgrader YAML receives standard title fallback')
 listener=(ROOT/'paper/src/main/java/vn/ledat/itemupgrader/paper/gui/GuiInventoryListener.java').read_text(encoding='utf-8')
 require('event.setCancelled(true)' in listener and 'getRawSlot()' in listener and 'InventoryCreativeEvent' in listener, 'listener has cancellation/raw-slot/creative guards in source')
 require(not re.search(r'\.(openInventory|closeInventory)\s*\(',listener), 'open/close not executed in inventory click listener')
@@ -347,6 +368,9 @@ require(500 <= a['open-cooldown-ms'] <= 30000, 'animation open rate limit')
 require(1000 <= a['callback-timeout-ms'] <= 10000, 'animation callback timeout')
 require(100 <= a['pulse-interval-ms'] <= 1000, 'animation pulse rate limit')
 require(a['default-preset'] in a['presets'], 'animation default preset exists')
+titles = a['title-animation']
+require(1 <= titles['interval-ticks'] <= 20, 'title packet interval')
+require(1 <= len(titles['titles']) <= 200 and all(isinstance(title, str) and title for title in titles['titles']), 'title packet frames')
 for name, preset in a['presets'].items():
     require(re.fullmatch('[a-z0-9][a-z0-9_-]{0,31}', name), 'preset ID')
     require(preset['kind'] in ('NONE','QUICK','ROULETTE'), 'preset kind')
@@ -359,16 +383,18 @@ for name, preset in a['presets'].items():
         require(1 <= preset['turns'] <= 20 and preset['acceleration-ms'] >= 50 and preset['deceleration-ms'] >= 100, 'moving preset speed bounds')
 menu = a['menu']
 require(1 <= len(menu['matrix']) <= 6 and all(len(row) == 9 for row in menu['matrix']), 'animation matrix')
-roles = [menu['symbols'][symbol] for row in menu['matrix'] for symbol in row]
-require(set(roles) == {'FILLER','TRACK','STATUS','BADGE','SKIP','CLOSE'}, 'animation roles')
+roles = [menu['symbols'][symbol] for row in menu['matrix'] for symbol in row if symbol != '.']
+require(set(roles) == {'TRACK','STATUS','BADGE','SKIP','CLOSE'}, 'animation roles')
 for role in ('STATUS','BADGE','SKIP','CLOSE'):
     require(roles.count(role) == 1, 'single animation role '+role)
 track = menu['track-order']
 require(4 <= len(track) <= 36 and len(track) == len(set(track)), 'unique bounded ordered track')
-require(set(track) == {i for i, role in enumerate(roles) if role == 'TRACK'}, 'track covers every TRACK exactly')
-require(set(menu['icons']) == {'FILLER','TRACK','MARKER','STATUS','BADGE','WIN','LOSS','SKIP','CLOSE'}, 'complete animation palette')
+require(set(track) == {i for i, symbol in enumerate(''.join(menu['matrix']))
+                       if symbol != '.' and menu['symbols'][symbol] == 'TRACK'}, 'track covers every TRACK exactly')
+require(set(menu['icons']) == {'TRACK','MARKER','STATUS','BADGE','WIN','LOSS','SKIP','CLOSE'}, 'complete animation palette')
 for icon in menu['icons'].values():
     require(re.fullmatch('[A-Z][A-Z0-9_]{0,63}', icon['material']), 'animation material syntax')
+    require(icon['material'] == 'PAPER' and icon['item-model'] == 'thanhviet:empty', 'animation standard empty model')
     require(type(icon['glow']) is bool and isinstance(icon['name'],str) and isinstance(icon['lore'],list), 'animation icon types')
     for text in [menu['title'],icon['name'],*icon['lore']]:
         require(set(re.findall(r'\{([^{}]+)}',text)).issubset({'stage','outcome','mode','chance','preset','prefix'}), 'animation supported placeholder')
@@ -389,6 +415,30 @@ for path in (ROOT/'paper/src/main/java/vn/ledat/itemupgrader/paper/animation').g
 listener = (ROOT/'paper/src/main/java/vn/ledat/itemupgrader/paper/animation/AnimationInventoryListener.java').read_text()
 require('event.setCancelled(true)' in listener and 'getRawSlot()' in listener, 'animation click cancellation/source guard')
 require(not re.search(r'\.(openInventory|closeInventory)\s*\(',listener), 'animation listener defers open/close')
+title_packets = (ROOT/'paper/src/main/java/vn/ledat/itemupgrader/paper/animation/PacketEventsTitlePackets.java').read_text()
+require('sendPacket(player, packet)' in title_packets and 'sendPacketSilently' not in title_packets,
+        'title refresh must traverse resource-pack packet listeners')
+require('player.updateInventory()' in title_packets,
+        'title refresh must restore client slots after OPEN_WINDOW')
+require('PacketType.Play.Server.WINDOW_ITEMS' not in title_packets and '.setCancelled(' not in title_packets, 'title bridge must not intercept inventory content/foreign packets')
+require('getTopInventory() != inventory' in title_packets and 'entry.inventory != inventory' in title_packets
+        and '!entry.armed' in title_packets and 'PacketListenerPriority.LOWEST' in title_packets
+        and 'PacketListenerPriority.MONITOR' in title_packets and 'candidateId' in title_packets,
+        'title bridge exact inventory and two-stage synchronous-open fences')
+gui_title_packets = (ROOT/'paper/src/main/java/vn/ledat/itemupgrader/paper/gui/GuiTitlePackets.java').read_text()
+require('sendPacket(player,' in gui_title_packets and 'sendPacketSilently' not in gui_title_packets,
+        'main title refresh must traverse resource-pack packet listeners')
+require('player.updateInventory()' in gui_title_packets,
+        'main title refresh must restore client slots after OPEN_WINDOW')
+require('PacketType.Play.Server.WINDOW_ITEMS' not in gui_title_packets and '.setCancelled(' not in gui_title_packets, 'main title bridge cannot intercept contents or cancel foreign packets')
+title_renderer = (ROOT/'paper/src/main/java/vn/ledat/itemupgrader/paper/gui/UpgraderTitleRenderer.java').read_text()
+require('net.momirealms.craftengine.core.util.AdventureHelper' in title_renderer
+        and 'net.momirealms.sparrow.message.MiniMessage' in title_renderer,
+        'main title must resolve CraftEngine shift/image tags through its optional parser')
+require('getTopInventory() != inventory' in gui_title_packets and 'entry.inventory != inventory' in gui_title_packets
+        and '!entry.armed' in gui_title_packets and 'PacketListenerPriority.LOWEST' in gui_title_packets
+        and 'PacketListenerPriority.MONITOR' in gui_title_packets and 'candidateId' in gui_title_packets,
+        'main title exact inventory and two-stage synchronous-open fences')
 require('menus/animation.yml' in (ROOT/'paper/src/main/java/vn/ledat/itemupgrader/paper/platform/PlatformAccess.java').read_text(), 'animation config ensured')
 
 # Phase 8: supplemental only. Actual SQL hook semantics are exercised by the SQLite repository bridge.
@@ -406,11 +456,12 @@ for cue in history['sounds'].values():
     require(isinstance(cue['volume'],str) and 0 <= Decimal(cue['volume']) <= 2, 'history volume')
     require(isinstance(cue['pitch'],str) and Decimal('0.5') <= Decimal(cue['pitch']) <= 2, 'history pitch')
 require(all(len(row)==9 for row in history_menu['matrix']) and 1 <= len(history_menu['matrix']) <= 6, 'history layout')
-symbols=history_menu['symbols']; elements=[symbols[ch] for row in history_menu['matrix'] for ch in row]
+symbols=history_menu['symbols']; elements=[symbols[ch] for row in history_menu['matrix'] for ch in row if ch != '.']
 require(1 <= sum(e['role']=='INFO' for e in elements) <= 45, 'bounded read-only entries')
 require(set(e['action'] for e in elements) == {'NONE','NEXT_PAGE','PREVIOUS_PAGE','REFRESH','CLOSE'}, 'history only navigation actions')
 for e in elements:
     require(e['role'] in ('INFO','BUTTON','FILLER') and not e['argument'], 'history no source or target actions')
+    require(e['material'] == 'PAPER' and e['item-model'] == 'thanhviet:empty', 'history standard empty model')
     require(e['role']!='INFO' or e['action']=='NONE', 'history entries cannot run actions')
 for node in ('ledatitemupgrader.admin.history','ledatitemupgrader.admin.diagnostics'):
     require(plugin['permissions'][node]['default']=='op', 'history/diagnostics admin permission')

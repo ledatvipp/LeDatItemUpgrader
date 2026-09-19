@@ -7,26 +7,16 @@ config-version: 1
 id: history
 title: '<dark_gray>Lịch sử nâng cấp</dark_gray>'
 matrix:
-  - '#########'
-  - '#EEEEEEE#'
-  - '#EEEEEEE#'
-  - '#EEEEEEE#'
-  - '#EEEEEEE#'
-  - '#P#R#N#X#'
+  - '.........'
+  - '.EEEEEEE.'
+  - '.EEEEEEE.'
+  - '.EEEEEEE.'
+  - '.EEEEEEE.'
+  - '.P.R.N.X.'
 symbols:
-  '#':
-    role: FILLER
-    material: BLACK_STAINED_GLASS_PANE
-    name: ' '
-    lore: []
-    item-model: ''
-    custom-model-data: 0
-    glow: false
-    action: NONE
-    argument: ''
   'E':
     role: INFO
-    material: BOOK
+    material: 'PAPER'
     name: '<gold>{source} <gray>→</gray> {target}</gold>'
     lore:
       - '<gray>Nguồn: <white>{source_amount} × {source}</white></gray>'
@@ -38,48 +28,43 @@ symbols:
       - '<gray>Tạo: <white>{created_at}</white></gray>'
       - '<dark_gray>TX: {transaction}</dark_gray>'
       - '<yellow>Lịch sử chỉ đọc, không phải nút nhận thưởng.</yellow>'
-    item-model: ''
-    custom-model-data: 0
+    item-model: 'thanhviet:empty'
     glow: false
     action: NONE
     argument: ''
   'P':
     role: BUTTON
-    material: ARROW
+    material: 'PAPER'
     name: '<yellow>Trang trước</yellow>'
     lore: ['<gray>Trang hiện tại: {page}</gray>']
-    item-model: ''
-    custom-model-data: 0
+    item-model: 'thanhviet:empty'
     glow: false
     action: PREVIOUS_PAGE
     argument: ''
   'R':
     role: BUTTON
-    material: CLOCK
+    material: 'PAPER'
     name: '<aqua>Làm mới</aqua>'
     lore: ['<gray>{status}</gray>', '<gray>Bộ lọc: {filter}</gray>', '<gray>Làm mới sẽ trở về trang đầu.</gray>']
-    item-model: ''
-    custom-model-data: 0
+    item-model: 'thanhviet:empty'
     glow: false
     action: REFRESH
     argument: ''
   'N':
     role: BUTTON
-    material: ARROW
+    material: 'PAPER'
     name: '<yellow>Trang tiếp</yellow>'
     lore: ['<gray>Trang hiện tại: {page}</gray>']
-    item-model: ''
-    custom-model-data: 0
+    item-model: 'thanhviet:empty'
     glow: false
     action: NEXT_PAGE
     argument: ''
   'X':
     role: BUTTON
-    material: BARRIER
+    material: 'PAPER'
     name: '<red>Đóng</red>'
     lore: ['<gray>Đóng menu không thay đổi giao dịch.</gray>']
-    item-model: ''
-    custom-model-data: 0
+    item-model: 'thanhviet:empty'
     glow: false
     action: CLOSE
     argument: ''

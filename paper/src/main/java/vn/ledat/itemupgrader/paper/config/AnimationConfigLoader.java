@@ -11,7 +11,7 @@ final class AnimationConfigLoader {
     private AnimationConfigLoader() {}
     static AnimationConfiguration load(YamlNode root, RegistrySnapshot registry) {
         root.allow("config-version", "preview-enabled", "maximum-sessions", "visits-per-tick", "open-cooldown-ms",
-                "callback-timeout-ms", "pulse-interval-ms", "default-preset", "presets", "menu", "sounds");
+                "callback-timeout-ms", "pulse-interval-ms", "default-preset", "presets", "title-animation", "menu", "sounds");
         root.integer("config-version", 1, 1);
         Map<String, AnimationPreset> presets = new LinkedHashMap<>();
         root.section("presets").entries().forEach((id, raw) -> {
@@ -23,6 +23,17 @@ final class AnimationConfigLoader {
                     ms(node, "reveal-hold-ms", 250, 5000), node.integer("turns", 0, 20)));
         });
         var menu = root.section("menu"); menu.allow("title", "matrix", "symbols", "track-order", "icons");
+        List<String> titleFrames = List.of(menu.string("title"));
+        int titleIntervalTicks = 1;
+        if (root.has("title-animation")) {
+            var animation = root.section("title-animation");
+            animation.allow("titles", "interval-ticks");
+            titleFrames = animation.strings("titles");
+            titleIntervalTicks = animation.integer("interval-ticks", 1, 20);
+            if (titleFrames.isEmpty() || titleFrames.size() > 200)
+                throw new IllegalArgumentException(animation.at("titles") + ": expected 1..200 title frames");
+            for (String frame : titleFrames) text(frame, animation.at("titles"));
+        }
         Map<Character, AnimationMenu.Role> symbols = new HashMap<>();
         menu.section("symbols").entries().forEach((symbol, raw) -> {
             if (symbol.length() != 1 || !(raw instanceof String role))
@@ -42,8 +53,8 @@ final class AnimationConfigLoader {
             icons.put(AnimationMenu.Palette.valueOf(id), element);
         });
         text(menu.string("title"), menu.at("title"));
-        var layout = new AnimationMenu(menu.string("title"), menu.strings("matrix"), symbols,
-                menu.integers("track-order", 0, 53), icons);
+        var layout = new AnimationMenu(menu.string("title"), titleFrames, titleIntervalTicks,
+                menu.strings("matrix"), symbols, menu.integers("track-order", 0, 53), icons);
         Map<AnimationSessionStore.Cue, GuiSettings.Cue> sounds = new EnumMap<>(AnimationSessionStore.Cue.class);
         root.section("sounds").entries().forEach((id, raw) -> {
             var n = YamlNode.from(raw, root.at("sounds") + "." + id); n.allow("key", "volume", "pitch");
