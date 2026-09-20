@@ -6,15 +6,15 @@ import java.util.Objects;
 import vn.ledat.itemupgrader.quote.UpgradeRules;
 
 /** Compiled layout contract. Dynamic list roles bind IDs from a filtered page, not configured item names. */
-public record GuiMenus(GuiSettings settings, Map<GuiContext.Screen, MenuCompiler.CompiledMenu> menus) {
+public record GuiMenus(GuiSettings settings, Map<GuiContext.Screen, MenuCompiler.CompiledMenu> menus,
+                       java.util.Optional<UpgraderTitleLayout> titleLayout) {
     public GuiMenus {
-        Objects.requireNonNull(settings); menus = Map.copyOf(menus);
+        Objects.requireNonNull(settings); Objects.requireNonNull(titleLayout); menus = Map.copyOf(menus);
         if (!menus.keySet().equals(java.util.Set.of(GuiContext.Screen.values()))) throw new IllegalArgumentException("GUI requires main/catalog/profiles/boosts menus");
         for (var entry : menus.entrySet()) {
             var screen = entry.getKey(); var menu = entry.getValue();
             if (screen == GuiContext.Screen.MAIN && menu.sourceSlot() < 0) throw new IllegalArgumentException("main GUI requires source selector");
             if (screen != GuiContext.Screen.MAIN && menu.sourceSlot() >= 0) throw new IllegalArgumentException("list menu cannot own source input");
-            if(menu.slots().values().stream().noneMatch(e->e.role()==MenuDefinition.Role.FILLER)) throw new IllegalArgumentException("menu requires configurable FILLER");
             var role = entryRole(screen);
             long count = menu.slots().values().stream().filter(e -> e.role() == role).count();
             if (screen != GuiContext.Screen.MAIN && (count < 1 || count > 45)) throw new IllegalArgumentException("list requires 1..45 entry slots");
@@ -28,6 +28,9 @@ public record GuiMenus(GuiSettings settings, Map<GuiContext.Screen, MenuCompiler
             if (menu.slots().values().stream().noneMatch(e -> e.action() == MenuDefinition.Action.CLOSE))
                 throw new IllegalArgumentException("menu requires CLOSE");
         }
+    }
+    public GuiMenus(GuiSettings settings, Map<GuiContext.Screen, MenuCompiler.CompiledMenu> menus) {
+        this(settings, menus, java.util.Optional.empty());
     }
     public MenuCompiler.CompiledMenu menu(GuiContext.Screen screen) { return menus.get(screen); }
     public List<Integer> entrySlots(GuiContext.Screen screen) {

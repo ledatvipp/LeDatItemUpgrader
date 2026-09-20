@@ -15,6 +15,17 @@ callback-timeout-ms: 5000
 pulse-interval-ms: 120
 default-preset: roulette
 
+# Danh sách title packet chạy vòng lặp trong suốt session. Mỗi frame giữ đúng
+# interval-ticks; đặt glyph/font Resource Pack của bạn vào đây. Packet chỉ được gửi
+# cho đúng container animation đang mở của LeDatItemUpgrader.
+title-animation:
+  interval-ticks: 1
+  titles:
+    - '<dark_gray>◐ Item Upgrader • {preset}</dark_gray>'
+    - '<dark_gray>◓ Item Upgrader • {preset}</dark_gray>'
+    - '<dark_gray>◑ Item Upgrader • {preset}</dark_gray>'
+    - '<dark_gray>◒ Item Upgrader • {preset}</dark_gray>'
+
 # Đơn vị milliseconds thời gian thực, không phải ticks (20 ticks không luôn bằng 1 giây).
 # Timeline chỉ nhận kết quả có trước. Route trung tính, KHÔNG dùng số ô vàng để biểu diễn xác suất.
 # acceleration: tăng tốc tuyến tính; deceleration: tốc độ giảm theo (1-u)^2, không overshoot.
@@ -49,17 +60,17 @@ presets:
     turns: 0
 
 menu:
+  # Fallback title dùng lúc tạo inventory trước khi packet animation được bắt.
   title: '<dark_gray>Item Upgrader • {preset}</dark_gray>'
-  # Native grid 9 cột. STATUS/BADGE/SKIP/CLOSE phải xuất hiện đúng một lần.
+  # Native grid 9 cột; dấu `.` là ô trống. STATUS/BADGE/SKIP/CLOSE phải xuất hiện đúng một lần.
   matrix:
-    - '#########'
-    - '##TTTTT##'
-    - '##T#I#T##'
-    - '##TTTTT##'
-    - '####B####'
-    - '##K###X##'
+    - '.........'
+    - '..TTTTT..'
+    - '..T.I.T..'
+    - '..TTTTT..'
+    - '....B....'
+    - '..K...X..'
   symbols:
-    '#': FILLER
     T: TRACK
     I: STATUS
     B: BADGE
@@ -74,23 +85,21 @@ menu:
   # Placeholder: {stage}, {outcome}, {mode}, {chance}, {preset}, {prefix}.
   # Không có {sample}/{roll}; preview không bịa chance hoặc sample.
   icons:
-    FILLER:
-      material: BLACK_STAINED_GLASS_PANE
-      name: ' '
-      lore: []
-      glow: false
     TRACK:
-      material: GRAY_STAINED_GLASS_PANE
+      material: 'PAPER'
+      item-model: 'thanhviet:empty'
       name: '<dark_gray>•</dark_gray>'
       lore: []
       glow: false
     MARKER:
-      material: YELLOW_STAINED_GLASS_PANE
+      material: 'PAPER'
+      item-model: 'thanhviet:empty'
       name: '<yellow>»</yellow>'
       lore: []
       glow: true
     STATUS:
-      material: CLOCK
+      material: 'PAPER'
+      item-model: 'thanhviet:empty'
       name: '<gold>{stage}</gold>'
       lore:
         - '<gray>{mode}</gray>'
@@ -98,35 +107,40 @@ menu:
         - '<gray>Tỷ lệ thật: <white>{chance}</white></gray>'
       glow: false
     WIN:
-      material: LIME_STAINED_GLASS_PANE
+      material: 'PAPER'
+      item-model: 'thanhviet:empty'
       name: '<green>{outcome}</green>'
       lore:
         - '<gray>{mode}</gray>'
         - '<gray>Kết quả hiển thị không xác nhận đã nhận vật phẩm.</gray>'
       glow: true
     LOSS:
-      material: RED_STAINED_GLASS_PANE
+      material: 'PAPER'
+      item-model: 'thanhviet:empty'
       name: '<red>{outcome}</red>'
       lore:
         - '<gray>{mode}</gray>'
         - '<gray>Đây là reveal; animation không sửa giao dịch.</gray>'
       glow: false
     BADGE:
-      material: PAPER
+      material: 'PAPER'
+      item-model: 'thanhviet:empty'
       name: '<yellow>{mode}</yellow>'
       lore:
         - '<gray>{mode}</gray>'
         - '<gray>Không có phần thưởng từ nút này.</gray>'
       glow: false
     SKIP:
-      material: FEATHER
+      material: 'PAPER'
+      item-model: 'thanhviet:empty'
       name: '<aqua>Bỏ qua animation</aqua>'
       lore:
         - '<gray>Hiện ngay cùng kết quả đã định trước.</gray>'
         - '<gray>Không roll lại, không thay chi phí.</gray>'
       glow: false
     CLOSE:
-      material: BARRIER
+      material: 'PAPER'
+      item-model: 'thanhviet:empty'
       name: '<red>Đóng</red>'
       lore:
         - '<gray>Chỉ đóng phần hiển thị.</gray>'

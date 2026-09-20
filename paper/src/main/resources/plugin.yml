@@ -3,13 +3,13 @@ version: '${pluginVersion}'
 main: vn.ledat.itemupgrader.paper.LeDatItemUpgraderPlugin
 api-version: '1.21.4'
 authors: [LeDat]
-description: 'Item Upgrader - Phase 0-9A: inventory and admin animation preview, live transaction adapters still gated'
-depend: [LeDatPlatform]
-softdepend: [PlaceholderAPI]
+description: 'Item Upgrader - native test upgrade flow with server-side RNG and economy support'
+depend: [LeDatPlatform, packetevents]
+softdepend: [PlaceholderAPI, CraftEngine, Nexo]
 # Không khai báo Folia support: source này nhắm Paper main-thread model.
 commands:
   upgrader:
-    description: 'Menu xem trước Item Upgrader và command quản trị'
+    description: 'Mở menu Item Upgrader và command quản trị'
     usage: '/upgrader help'
     aliases: [itemupgrader]
     # Permission kiểm tra ở command adapter để no-permission luôn lấy từ messages.yml.

@@ -56,4 +56,4 @@ path-profile-rules: []
 # PlayerPoints raw phải nguyên và <= 2147483647; Vault cap 1e12; item cap 65536.
 # Item fee chỉ khớp template chính xác (isSimilar + identity); không ăn đồ enchanted,
 # renamed/PDC khác template. Nguồn/tay phụ/armor/cursor không dùng trả phí.
-# DAMAGE/DOWNGRADE/transfer được cấu hình trong outputs.yml; các mẫu không tự gắn vào profile. Giao dịch native vẫn khóa.
+# DAMAGE/DOWNGRADE/transfer được cấu hình trong outputs.yml; test executor hiện chỉ mở CLEAN + DESTROY/KEEP.

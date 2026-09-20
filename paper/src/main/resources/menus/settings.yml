@@ -33,3 +33,7 @@ sounds:
     key: ''
     volume: '0'
     pitch: '1'
+  title-pulse:
+    key: 'minecraft:ui.button.click'
+    volume: '0.18'
+    pitch: '1.65'

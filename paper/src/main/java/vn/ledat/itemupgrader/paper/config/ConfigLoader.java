@@ -35,8 +35,9 @@ public final class ConfigLoader {
         YamlNode config = loadYaml(folder.resolve("config.yml"));
         config.allow("config-version", "features", "performance", "storage", "limits"); version(config, "config-version");
         YamlNode features = config.section("features"); features.allow("upgrades-enabled", "packet-renderer-enabled");
-        if (features.bool("upgrades-enabled") || features.bool("packet-renderer-enabled"))
-            throw new IllegalArgumentException("config.yml.features: native escrow/ledger/delivery adapters are not released in Phase 0-9A; keep false");
+        boolean upgradesEnabled = features.bool("upgrades-enabled");
+        if (features.bool("packet-renderer-enabled"))
+            throw new IllegalArgumentException("config.yml.features.packet-renderer-enabled: renderer is not released; keep false");
         YamlNode performance = config.section("performance"); performance.allow("identity-probe-batch", "command-cooldown-ms");
         YamlNode storage = config.section("storage"); storage.allow("initialize-schema", "mode");
         if (!storage.string("mode").equals("PLATFORM_SHARED"))
@@ -57,12 +58,13 @@ public final class ConfigLoader {
                 loadYaml(folder.resolve("upgrades/chance.yml")), loadYaml(folder.resolve("upgrades/profiles.yml")),
                 loadYaml(folder.resolve("upgrades/boosts.yml")), loadYaml(folder.resolve("upgrades/conditions.yml")), identities, outputs);
         Map<String, String> messages = messages(loadYaml(folder.resolve("messages.yml")));
-        MenuCompiler.CompiledMenu menu = menu(loadYaml(folder.resolve("menus/upgrader.yml")), true);
+        YamlNode upgraderMenu = loadYaml(folder.resolve("menus/upgrader.yml"));
+        MenuCompiler.CompiledMenu menu = menu(upgraderMenu, true);
         GuiMenus gui = new GuiMenus(GuiConfigLoader.settings(loadYaml(folder.resolve("menus/settings.yml")), registry), Map.of(
                 GuiContext.Screen.MAIN, menu,
                 GuiContext.Screen.CATALOG, menu(loadYaml(folder.resolve("menus/catalog.yml")), false),
                 GuiContext.Screen.PROFILES, menu(loadYaml(folder.resolve("menus/profiles.yml")), false),
-                GuiContext.Screen.BOOSTS, menu(loadYaml(folder.resolve("menus/boosts.yml")), false)));
+                GuiContext.Screen.BOOSTS, menu(loadYaml(folder.resolve("menus/boosts.yml")), false)), titleLayout(upgraderMenu));
         gui.validateReferences(upgradeRules);
         var animation = AnimationConfigLoader.load(loadYaml(folder.resolve("menus/animation.yml")), registry);
         var history = HistoryConfigLoader.load(loadYaml(folder.resolve("history.yml")),loadYaml(folder.resolve("upgrades/pity.yml")),
@@ -71,7 +73,8 @@ public final class ConfigLoader {
         identities.removeIf(ItemKey::vanilla);
         return new UpgraderRuntime(values, catalog, upgradeRules, messages, menu, List.copyOf(identities),
                 performance.integer("identity-probe-batch", 1, 32), performance.integer("command-cooldown-ms", 100, 60000),
-                storage.bool("initialize-schema"), java.util.Optional.of(gui), java.util.Optional.of(animation), java.util.Optional.of(history), storageManagement);
+                storage.bool("initialize-schema"), java.util.Optional.of(gui), java.util.Optional.of(animation), java.util.Optional.of(history), storageManagement,
+                upgradesEnabled);
     }
     private ValueDefinitions values(YamlNode root, ValueLimits limits, RecipeIndex recipes, Set<ItemKey> identities) {
         root.allow("config-version", "manual", "rules", "provider-defaults", "rarity-defaults", "blocked-items", "modifiers"); version(root, "config-version");
@@ -148,7 +151,8 @@ public final class ConfigLoader {
         return Map.copyOf(result);
     }
     private MenuCompiler.CompiledMenu menu(YamlNode root, boolean requireSource) {
-        root.allow("config-version", "id", "title", "matrix", "symbols"); version(root, "config-version");
+        root.allow("config-version", "id", "title", "matrix", "symbols", "title-display"); version(root, "config-version");
+        if (!requireSource && root.has("title-display")) throw new IllegalArgumentException(root.at("title-display") + ": only the main upgrader menu supports packet titles");
         Map<Character, MenuDefinition.Element> symbols = new LinkedHashMap<>();
         for (var entry : root.section("symbols").entries().entrySet()) {
             if (entry.getKey().length() != 1) throw new IllegalArgumentException("menu symbol must be one ASCII character");
@@ -166,6 +170,34 @@ public final class ConfigLoader {
         }
         validateText(root.string("title"), root.at("title"));
         return new MenuCompiler().compile(new MenuDefinition(root.string("id"), root.string("title"), root.strings("matrix"), symbols), requireSource);
+    }
+    private java.util.Optional<UpgraderTitleLayout> titleLayout(YamlNode root) {
+        // Existing deployed YAML is never overwritten by ensureBundledYaml. Fall back to the
+        // shipped standard so upgrading the JAR activates the requested title without deleting config.
+        if (!root.has("title-display")) return java.util.Optional.of(UpgraderTitleLayout.standard());
+        YamlNode n = root.section("title-display");
+        n.allow("enabled", "visits-per-tick", "selected-hold-ticks", "bar-frames", "bar-fill-ticks", "arrow-start-shift", "arrow-end-shift",
+                "arrow-duration-ticks", "arrow-sound-interval-ticks", "empty", "selected", "bar", "ready");
+        var layout = new UpgraderTitleLayout(n.bool("enabled"), n.integer("visits-per-tick", 1, 128), n.integer("selected-hold-ticks", 0, 100),
+                n.integer("bar-frames", 2, 512), n.integer("bar-fill-ticks", 1, 200),
+                n.integer("arrow-start-shift", -4096, 4096), n.integer("arrow-end-shift", -4096, 4096),
+                n.integer("arrow-duration-ticks", 1, 400), n.integer("arrow-sound-interval-ticks", 1, 20),
+                n.string("empty"), n.string("selected"), n.string("bar"), n.string("ready"));
+        var allowed = java.util.Set.of("source_value", "target_value", "amount_state", "amount", "chance", "bar", "arrow_shift", "percent");
+        for (var entry : java.util.Map.of("empty",layout.emptyTitle(), "selected",layout.selectedTitle(),
+                "bar",layout.barTitle(), "ready",layout.readyTitle()).entrySet()) {
+            var matcher = java.util.regex.Pattern.compile("\\{([^{}]+)}").matcher(entry.getValue());
+            while (matcher.find()) if (!allowed.contains(matcher.group(1)))
+                throw new IllegalArgumentException(n.at(entry.getKey()) + ": unsupported title placeholder " + matcher.group());
+        }
+        for (String required : java.util.List.of("{source_value}", "{target_value}", "{amount_state}", "{amount}"))
+            if (!layout.selectedTitle().contains(required)) throw new IllegalArgumentException(n.at("selected") + ": missing " + required);
+        for (String required : java.util.List.of("{chance}", "{bar}"))
+            if (!layout.barTitle().contains(required) || !layout.readyTitle().contains(required))
+                throw new IllegalArgumentException(n.at("bar") + ": missing " + required);
+        if (!layout.readyTitle().contains("{arrow_shift}"))
+            throw new IllegalArgumentException(n.at("ready") + ": missing {arrow_shift}");
+        return java.util.Optional.of(layout);
     }
     static void validateText(String text, String path) {
         try { net.kyori.adventure.text.minimessage.MiniMessage.builder().strict(true).build().deserialize(text); }

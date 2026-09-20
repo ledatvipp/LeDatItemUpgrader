@@ -18,20 +18,26 @@ public final class AnimationSessionStore {
             if (revision < 1 || incarnation < 1) throw new IllegalArgumentException("invalid animation revision/incarnation");
         }
     }
-    public record Update(Token token, long sequence, Optional<AnimationTimeline.Frame> frame, Optional<End> end) {
+    public record Update(Token token, long sequence, long titleFrame, Optional<AnimationTimeline.Frame> frame, Optional<End> end) {
+        public Update(Token token, long sequence, Optional<AnimationTimeline.Frame> frame, Optional<End> end) {
+            this(token, sequence, 0, frame, end);
+        }
         public Update {
             Objects.requireNonNull(token); Objects.requireNonNull(frame); Objects.requireNonNull(end);
-            if (sequence < 1 || frame.isPresent() == end.isPresent()) throw new IllegalArgumentException("invalid animation update");
+            if (sequence < 1 || titleFrame < 0 || frame.isPresent() == end.isPresent()) throw new IllegalArgumentException("invalid animation update");
         }
     }
     private static final class Entry {
         final Token token; final AnimationTimeline timeline; final AnimationPreset preset;
-        final long started, callbackTimeout, pulseInterval;
-        long elapsed, sequence, sentAt, lastSoundAt, revealAt;
+        final long started, callbackTimeout, pulseInterval, titleInterval;
+        final int titleFrames;
+        long elapsed, sequence, sentAt, lastSoundAt, revealAt, lastTitleFrame = -1, offeredTitleFrame = -1;
         boolean skipped, outstanding, sounded, revealed;
         AnimationTimeline.Frame lastPresented, offered;
-        Entry(Token token, AnimationRequest request, AnimationPreset preset, int cells, long started, long timeout, long interval) {
+        Entry(Token token, AnimationRequest request, AnimationPreset preset, int cells, long started, long timeout,
+              long interval, int titleFrames, long titleInterval) {
             this.token = token; this.preset = preset; this.started = started; this.callbackTimeout = timeout; this.pulseInterval = interval;
+            this.titleFrames = titleFrames; this.titleInterval = titleInterval;
             timeline = new AnimationTimeline(preset, cells, request);
         }
     }
@@ -43,14 +49,22 @@ public final class AnimationSessionStore {
     public AnimationSessionStore(LongSupplier clock) { this.clock = Objects.requireNonNull(clock); }
     public synchronized Optional<Token> open(UUID session, long revision, AnimationRequest request, AnimationPreset preset,
                                              int cells, int capacity, Duration timeout, Duration pulseInterval) {
+        return open(session, revision, request, preset, cells, capacity, timeout, pulseInterval, 1, Duration.ofMillis(50));
+    }
+    public synchronized Optional<Token> open(UUID session, long revision, AnimationRequest request, AnimationPreset preset,
+                                             int cells, int capacity, Duration timeout, Duration pulseInterval,
+                                             int titleFrames, Duration titleInterval) {
         Objects.requireNonNull(request); Objects.requireNonNull(timeout); Objects.requireNonNull(pulseInterval);
         if (capacity < 1 || capacity > 128 || timeout.compareTo(Duration.ofSeconds(1)) < 0 || timeout.compareTo(Duration.ofSeconds(10)) > 0
-                || pulseInterval.compareTo(Duration.ofMillis(100)) < 0 || pulseInterval.compareTo(Duration.ofSeconds(1)) > 0)
+                || pulseInterval.compareTo(Duration.ofMillis(100)) < 0 || pulseInterval.compareTo(Duration.ofSeconds(1)) > 0
+                || titleFrames < 1 || titleFrames > 200 || titleInterval == null
+                || titleInterval.compareTo(Duration.ofMillis(50)) < 0 || titleInterval.compareTo(Duration.ofSeconds(1)) > 0)
             throw new IllegalArgumentException("invalid animation limits");
         if (stopped || entries.containsKey(request.viewer()) || entries.size() >= capacity) return Optional.empty();
         if (incarnation == Long.MAX_VALUE) throw new IllegalStateException("animation incarnation exhausted");
         Token token = new Token(request.viewer(), session, request.reference(), revision, ++incarnation);
-        entries.put(request.viewer(), new Entry(token, request, preset, cells, clock.getAsLong(), timeout.toNanos(), pulseInterval.toNanos()));
+        entries.put(request.viewer(), new Entry(token, request, preset, cells, clock.getAsLong(), timeout.toNanos(),
+                pulseInterval.toNanos(), titleFrames, titleInterval.toNanos()));
         order.addLast(token); return Optional.of(token);
     }
     public synchronized int size() { return entries.size(); }
@@ -59,7 +73,7 @@ public final class AnimationSessionStore {
         var e = entry(update.token());
         return e != null && update.end().isEmpty() && e.outstanding && e.sequence == update.sequence()
                 && clock.getAsLong() - e.sentAt < e.callbackTimeout
-                && Objects.equals(e.offered, update.frame().orElse(null));
+                && e.offeredTitleFrame == update.titleFrame() && Objects.equals(e.offered, update.frame().orElse(null));
     }
     /** At most budget sessions inspected. Round-robin fairness, no full player scan or catch-up frame queue. */
     public synchronized List<Update> poll(int budget) {
@@ -82,9 +96,10 @@ public final class AnimationSessionStore {
             AnimationTimeline.Frame frame = e.skipped || e.revealed ? e.timeline.reveal() : e.timeline.sample(e.elapsed);
             // Even a long lag gap gets one acknowledged reveal before its hold timer starts.
             if (frame.phase() == AnimationTimeline.Phase.DONE) frame = e.timeline.reveal();
-            if (frame.equals(e.lastPresented)) continue;
-            e.offered = frame; e.outstanding = true; e.sentAt = now;
-            updates.add(new Update(token, ++e.sequence, Optional.of(frame), Optional.empty()));
+            long titleFrame = e.titleFrames == 1 ? 0 : (e.elapsed / e.titleInterval) % e.titleFrames;
+            if (frame.equals(e.lastPresented) && titleFrame == e.lastTitleFrame) continue;
+            e.offered = frame; e.offeredTitleFrame = titleFrame; e.outstanding = true; e.sentAt = now;
+            updates.add(new Update(token, ++e.sequence, titleFrame, Optional.of(frame), Optional.empty()));
         }
         return List.copyOf(updates);
     }
@@ -100,14 +115,15 @@ public final class AnimationSessionStore {
         else if (!e.revealed && frame.ordinal() != e.lastPresented.ordinal()
                 && (!e.sounded || now - e.lastSoundAt >= e.pulseInterval)) cue = Cue.PULSE;
         if (cue != Cue.NONE) { e.sounded = true; e.lastSoundAt = now; }
-        e.lastPresented = frame; e.offered = null; e.outstanding = false;
+        e.lastPresented = frame; e.lastTitleFrame = e.offeredTitleFrame;
+        e.offered = null; e.offeredTitleFrame = -1; e.outstanding = false;
         return Optional.of(cue);
     }
     /** Skips only remaining visuals. A pending older render loses its sequence; repeated skip cannot extend hold. */
     public synchronized boolean skip(Token token) {
         Entry e = entry(token);
         if (e == null || e.skipped || e.revealed || e.outstanding && clock.getAsLong() - e.sentAt >= e.callbackTimeout) return false;
-        e.skipped = true; e.outstanding = false; e.offered = null; e.sequence++;
+        e.skipped = true; e.outstanding = false; e.offered = null; e.offeredTitleFrame = -1; e.sequence++;
         return true;
     }
     public synchronized boolean close(Token token) {
@@ -127,5 +143,5 @@ public final class AnimationSessionStore {
         if (token == null) return null;
         Entry e = entries.get(token.viewer()); return e != null && e.token.equals(token) ? e : null;
     }
-    private static Update closing(Entry e, End end) { return new Update(e.token, ++e.sequence, Optional.empty(), Optional.of(end)); }
+    private static Update closing(Entry e, End end) { return new Update(e.token, ++e.sequence, 0, Optional.empty(), Optional.of(end)); }
 }

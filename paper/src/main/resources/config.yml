@@ -4,9 +4,9 @@
 config-version: 1
 
 features:
-  # Hai cờ này CỐ Ý bị khóa false trong bản nền. Bật true sẽ làm validation thất bại.
-  # Transaction core đã có, nhưng native escrow/ledger/delivery chưa phát hành; không lấy item/trừ tiền.
-  upgrades-enabled: false
+  # Chế độ test native: revalidate quote, chạy RNG và commit inventory/economy sau animation.
+  # Hiện hỗ trợ output CLEAN với failure DESTROY/KEEP; policy khác bị từ chối an toàn.
+  upgrades-enabled: true
   packet-renderer-enabled: false
 
 performance:

@@ -15,14 +15,18 @@ final class HistoryRenderer {
     HistoryRenderer(Messages messages){this.messages=messages;}
     void render(HistoryHolder holder,HistorySettings settings,HistorySessionStore.View view,String status) {
         var entries=settings.entrySlots();var page=view.page();
-        var filler=settings.menu().slots().values().stream().filter(e->e.role()==MenuDefinition.Role.FILLER).findFirst().orElseThrow();
+        var filler=settings.menu().slots().values().stream().filter(e->e.role()==MenuDefinition.Role.FILLER).findFirst();
         for(int slot=0;slot<settings.menu().size();slot++) {
             var element=settings.menu().slots().get(slot);Map<String,String> p=new HashMap<>();
+            if(element==null){if(holder.getInventory().getItem(slot)!=null)holder.getInventory().setItem(slot,null);continue;}
             p.put("page",Integer.toString(view.pageNumber()));p.put("player",view.subject().toString());p.put("status",plain(status));
             p.put("filter",plain("history-filter-"+view.filter().name().toLowerCase(Locale.ROOT)));
             int index=entries.indexOf(slot);
             if(index>=0) {
-                if(page.isEmpty()||index>=page.orElseThrow().rows().size())element=filler;
+                if(page.isEmpty()||index>=page.orElseThrow().rows().size()){
+                    if(filler.isEmpty()){if(holder.getInventory().getItem(slot)!=null)holder.getInventory().setItem(slot,null);continue;}
+                    element=filler.orElseThrow();
+                }
                 else {
                     var row=page.orElseThrow().rows().get(index);
                     p.put("transaction",row.transactionId().toString());p.put("source",row.sourceKey().value());p.put("source_amount",Integer.toString(row.sourceAmount()));

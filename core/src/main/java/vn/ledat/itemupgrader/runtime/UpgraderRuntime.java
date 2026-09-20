@@ -14,7 +14,8 @@ public record UpgraderRuntime(ValueDefinitions values, CatalogDefinitions catalo
                               int identityProbeBatch, int commandCooldownMillis, boolean initializeSchema, java.util.Optional<vn.ledat.itemupgrader.gui.GuiMenus> gui,
                               java.util.Optional<vn.ledat.itemupgrader.animation.AnimationConfiguration> animation,
                               java.util.Optional<vn.ledat.itemupgrader.history.HistorySettings> history,
-                              vn.ledat.itemupgrader.storage.management.StorageSettings storageManagement) {
+                              vn.ledat.itemupgrader.storage.management.StorageSettings storageManagement,
+                              boolean upgradesEnabled) {
     /** Compatibility constructor: older callers do not opt into schema or retention writes. */
     public UpgraderRuntime(ValueDefinitions values, CatalogDefinitions catalog, UpgradeRules rules, Map<String,String> messages,
             MenuCompiler.CompiledMenu menu,List<ItemKey> keys,int batch,int cooldown,boolean schema,
@@ -22,7 +23,7 @@ public record UpgraderRuntime(ValueDefinitions values, CatalogDefinitions catalo
             java.util.Optional<vn.ledat.itemupgrader.animation.AnimationConfiguration> animation,
             java.util.Optional<vn.ledat.itemupgrader.history.HistorySettings> history) {
         this(values,catalog,rules,messages,menu,keys,batch,cooldown,schema,gui,animation,history,
-            vn.ledat.itemupgrader.storage.management.StorageSettings.off());
+            vn.ledat.itemupgrader.storage.management.StorageSettings.off(),false);
     }
     public UpgraderRuntime(ValueDefinitions values, CatalogDefinitions catalog, UpgradeRules rules, Map<String,String> messages,
             MenuCompiler.CompiledMenu menu,List<ItemKey> keys,int batch,int cooldown,boolean schema,
@@ -37,6 +38,14 @@ public record UpgraderRuntime(ValueDefinitions values, CatalogDefinitions catalo
     public UpgraderRuntime(ValueDefinitions values, CatalogDefinitions catalog, UpgradeRules rules, Map<String,String> messages,
                            MenuCompiler.CompiledMenu menu, List<ItemKey> keys, int batch, int cooldown, boolean schema) {
         this(values,catalog,rules,messages,menu,keys,batch,cooldown,schema,java.util.Optional.empty());
+    }
+    public UpgraderRuntime(ValueDefinitions values, CatalogDefinitions catalog, UpgradeRules rules, Map<String,String> messages,
+            MenuCompiler.CompiledMenu menu,List<ItemKey> keys,int batch,int cooldown,boolean schema,
+            java.util.Optional<vn.ledat.itemupgrader.gui.GuiMenus> gui,
+            java.util.Optional<vn.ledat.itemupgrader.animation.AnimationConfiguration> animation,
+            java.util.Optional<vn.ledat.itemupgrader.history.HistorySettings> history,
+            vn.ledat.itemupgrader.storage.management.StorageSettings storageManagement) {
+        this(values,catalog,rules,messages,menu,keys,batch,cooldown,schema,gui,animation,history,storageManagement,false);
     }
     public UpgraderRuntime {
         Objects.requireNonNull(gui); Objects.requireNonNull(animation); Objects.requireNonNull(history); Objects.requireNonNull(storageManagement);

@@ -8,6 +8,7 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
 import vn.ledat.itemupgrader.catalog.*;
+import vn.ledat.itemupgrader.chance.Probability;
 import vn.ledat.itemupgrader.condition.ConditionDefinition;
 import vn.ledat.itemupgrader.cost.ResourceSnapshot;
 import vn.ledat.itemupgrader.demo.GuiDemo;
@@ -21,7 +22,7 @@ public final class Phase06SelfTest {
     private static int assertions;
     private Phase06SelfTest() {}
     public static void main(String[] args)throws Exception {
-        contextTests();settingsTests();menuTests();sessionTests();clickTests();diffTests();previewTests();
+        contextTests();settingsTests();menuTests();titleTests();sessionTests();clickTests();diffTests();previewTests();
         int failures=0;var xml=new StringBuilder();
         for(var entry:TESTS.entrySet()) {
             long start=System.nanoTime();String failure=null;
@@ -41,7 +42,7 @@ public final class Phase06SelfTest {
     private static void rejects(Checked t)throws Exception {assertions++;try{t.run();}catch(IllegalArgumentException|IllegalStateException|UnsupportedOperationException expected){return;}throw new AssertionError("expected rejection");}
     private static String escape(String s) {return s.replace("&","&amp;").replace("<","&lt;").replace("\"","&quot;");}
     private static void contextTests() {
-        test("context.initial-slot-reference-no-ownership",()->{var c=GuiContext.initial(0);eq(GuiContext.Screen.MAIN,c.screen());eq(-1,GuiContext.initial(-1).sourceSlot());eq("",c.targetId());eq(List.of(),c.boosts());});
+        test("context.initial-slot-reference-no-ownership",()->{var c=GuiContext.initial(0);eq(GuiContext.Screen.MAIN,c.screen());eq(-1,GuiContext.initial(-1).sourceSlot());eq(1,c.selectedAmount());eq("",c.targetId());eq(List.of(),c.boosts());});
         test("context.storage-slot-boundaries",()->{eq(35,GuiContext.initial(35).sourceSlot());rejects(()->GuiContext.initial(36));rejects(()->GuiContext.initial(-2));});
         test("context.page-bounds-avoid-overflow",()->{eq(10000,GuiContext.initial(0).page(10000).page());for(int n:List.of(-1,0,10001,Integer.MAX_VALUE))rejects(()->GuiContext.initial(0).page(n));});
         test("context.ids-preserve-path-period",()->{eq("path.t2-a_b",GuiContext.initial(0).target("path.t2-a_b").targetId());for(String id:List.of("<red>","../bad","UPPER","bad id","a".repeat(65)))rejects(()->GuiContext.initial(0).target(id));});
@@ -77,11 +78,11 @@ public final class Phase06SelfTest {
     }
     private static void menuTests() {
         test("menus.all-four-compile-reference-only",()->{var m=new GuiMenus(GuiSettings.defaults(),allMenus());eq(1,m.menu(GuiContext.Screen.MAIN).sourceSlot());eq(List.of(1,2,3),m.entrySlots(GuiContext.Screen.CATALOG));eq(3,m.pageSize(GuiContext.Screen.BOOSTS));m.validateReferences(fixture().rules());});
-        test("menus.compiled-model-rejects-incomplete-or-forged-source",()->{
+        test("menus.compiled-model-allows-empty-slots-and-rejects-forged-source",()->{
             var m=menu(GuiContext.Screen.MAIN);
             rejects(()->new MenuCompiler.CompiledMenu(m.id(),m.title(),m.size(),m.slots(),2));
             var incomplete=new HashMap<>(m.slots());incomplete.remove(0);
-            rejects(()->new MenuCompiler.CompiledMenu(m.id(),m.title(),m.size(),incomplete,m.sourceSlot()));
+            eq(8,new MenuCompiler.CompiledMenu(m.id(),m.title(),m.size(),incomplete,m.sourceSlot()).slots().size());
             rejects(()->new MenuCompiler.CompiledMenu(m.id(),m.title(),0,Map.of(),-1));
         });
         test("menus.missing-screen-rejected",()->{var m=allMenus();m.remove(GuiContext.Screen.BOOSTS);rejects(()->new GuiMenus(GuiSettings.defaults(),m));});
@@ -94,6 +95,20 @@ public final class Phase06SelfTest {
         test("menus.dynamic-entry-id-cannot-hardcode-or-misbind",()->{rejects(()->element(MenuDefinition.Role.CATALOG_ENTRY,MenuDefinition.Action.SELECT_TARGET,"diamond"));rejects(()->element(MenuDefinition.Role.BOOST_ENTRY,MenuDefinition.Action.SELECT_PROFILE,""));rejects(()->element(MenuDefinition.Role.SOURCE_PREVIEW,MenuDefinition.Action.SOURCE_INPUT,""));});
         test("menus.static-select-needs-id",()->{rejects(()->element(MenuDefinition.Role.BUTTON,MenuDefinition.Action.SELECT_PROFILE,""));rejects(()->element(MenuDefinition.Role.BUTTON,MenuDefinition.Action.TOGGLE_BOOST,""));});
         test("menus.literal-display-name-not-action-id",()->{var e=new MenuDefinition.Element(MenuDefinition.Role.BUTTON,"DIAMOND","<red>not-a-command",List.of(),"my:ui/button",6,true,MenuDefinition.Action.SELECT_PROFILE,"standard");eq("standard",e.argument());eq("my:ui/button",e.itemModel());});
+        test("menus.amount-step-is-strictly-allow-listed",()->{for(String step:List.of("2","4","8","12","16","20"))element(MenuDefinition.Role.BUTTON,MenuDefinition.Action.ADJUST_AMOUNT,step);for(String step:List.of("","1","3","-2","200"))rejects(()->element(MenuDefinition.Role.BUTTON,MenuDefinition.Action.ADJUST_AMOUNT,step));});
+    }
+    private static UpgraderTitleLayout titleLayout() {return new UpgraderTitleLayout(true,32,8,154,24,-157,-4,48,2,"empty","selected","bar","ready");}
+    private static void titleTests() {
+        test("title.standard-migrates-old-menu-config",()->{var l=UpgraderTitleLayout.standard();check(l.enabled());eq(154,l.barFrames());eq(72,l.arrowDurationTicks());check(l.emptyTitle().contains("CHƯA CÓ"));check(l.readyTitle().contains("bar_full:{bar}:0"));check(l.readyTitle().contains("<shift:{arrow_shift}><image:thanhviet:menu/item_upgrade/arrow>"));});
+        test("title.bar-maps-154-frames-over-100-percent",()->{var l=titleLayout();eq(0,l.barIndex(new Probability(0)));eq(4,l.barIndex(new Probability(24_600_000)));eq(153,l.barIndex(new Probability(Probability.DENOMINATOR)));int prior=-1;for(int i=0;i<=1000;i++){int next=l.barIndex(new Probability(i*1_000_000L));check(next>=prior&&next>=0&&next<154);prior=next;}});
+        test("title.ticket-sample-maps-to-entire-arrow-range",()->{var l=titleLayout();eq(0,l.sampleBar(0));eq(153,l.sampleBar(999_999_999));eq(77,l.sampleBar(500_000_000));for(int sample:List.of(-1,1_000_000_000))rejects(()->l.sampleBar(sample));});
+        test("title.percent-text-is-live-and-fixed-two-decimals",()->{eq("0.00",UpgraderTitleLayout.percentText(new Probability(0)));eq("2.46",UpgraderTitleLayout.percentText(new Probability(24_600_000)));eq("9.00",UpgraderTitleLayout.percentText(new Probability(90_000_000)));eq("100.00",UpgraderTitleLayout.percentText(new Probability(Probability.DENOMINATOR)));});
+        test("title.bar-fills-before-arrow-eases-to-exact-endpoints",()->{var l=titleLayout();var first=l.frame(100,0);eq(0,first.barIndex());check(first.arrowShift().isEmpty());eq(50,l.frame(100,12).barIndex());var arrow=l.frame(100,24);eq(100,arrow.barIndex());eq(-157,arrow.arrowShift().orElseThrow());check(arrow.pulse());var middle=l.frame(100,48);check(middle.arrowShift().orElseThrow()>-81);var done=l.frame(100,72);eq(-4,done.arrowShift().orElseThrow());check(done.complete());});
+        test("title.click-roll-randomizes-reverses-and-settles-at-chance",()->{var l=titleLayout();long seed=123456789L;check(l.rollFrame(100,23,seed).arrowShift().isEmpty());var positions=new ArrayList<Integer>();for(int tick=24;tick<72;tick++)positions.add(l.rollFrame(100,tick,seed).arrowShift().orElseThrow());check(new HashSet<>(positions).size()>8);boolean up=false,down=false;for(int i=1;i<positions.size();i++){up|=positions.get(i)>positions.get(i-1);down|=positions.get(i)<positions.get(i-1);}check(up&&down);eq(l.rollFrame(100,40,seed),l.rollFrame(100,40,seed));var done=l.rollFrame(100,72,seed);eq(-57,done.arrowShift().orElseThrow());check(done.complete());});
+        test("title.compact-values-use-stable-rp-suffixes",()->{eq("999",UpgraderTitleLayout.compactValue(new java.math.BigDecimal("999")));eq("100.2K",UpgraderTitleLayout.compactValue(new java.math.BigDecimal("100200")));eq("234.2K",UpgraderTitleLayout.compactValue(new java.math.BigDecimal("234200")));eq("2.5M",UpgraderTitleLayout.compactValue(new java.math.BigDecimal("2500000")));});
+        test("title.amount-image-covers-disabled-plus-minus-and-both",()->{eq(0,UpgraderTitleLayout.amountState(1,1));eq(1,UpgraderTitleLayout.amountState(1,128));eq(2,UpgraderTitleLayout.amountState(128,128));eq(3,UpgraderTitleLayout.amountState(64,128));rejects(()->UpgraderTitleLayout.amountState(129,128));});
+        test("title.bounds-reject-unbounded-packet-work",()->{rejects(()->new UpgraderTitleLayout(true,129,8,154,24,-157,-4,48,2,"e","s","b","r"));rejects(()->new UpgraderTitleLayout(true,32,8,1,24,-157,-4,48,2,"e","s","b","r"));rejects(()->new UpgraderTitleLayout(true,32,8,154,24,-4,-157,48,2,"e","s","b","r"));});
+        test("title.container-token-survives-sequence-not-view-replacement",()->{var h=new GuiSessionStore.Handle(VIEWER,UUID.randomUUID(),UUID.randomUUID(),1,0);var token=GuiTitleToken.of(h);check(token.matches(new GuiSessionStore.Handle(h.viewer(),h.session(),h.view(),h.revision(),9)));check(!token.matches(new GuiSessionStore.Handle(h.viewer(),h.session(),UUID.randomUUID(),h.revision(),9)));});
     }
     private static GuiSessionStore.State opened(GuiSessionStore s) {return s.open(VIEWER,1,GuiContext.initial(0),limits(2,60,5)).orElseThrow();}
     private static void sessionTests() {

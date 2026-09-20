@@ -28,18 +28,24 @@ public final class GuiRenderer {
         if(revision!=activeRevision) { revision=activeRevision; staticItems.clear(); }
         GuiMenus gui=runtime.gui().orElseThrow(); var menu=gui.menu(state.context().screen());
         Map<String,String> shared=parameters(runtime,state,preview,statusKey);
-        var filler=menu.slots().entrySet().stream().sorted(Map.Entry.comparingByKey()).map(Map.Entry::getValue).filter(e->e.role()==MenuDefinition.Role.FILLER).findFirst().orElseThrow();
+        var filler=menu.slots().entrySet().stream().sorted(Map.Entry.comparingByKey()).map(Map.Entry::getValue)
+                .filter(e->e.role()==MenuDefinition.Role.FILLER).findFirst();
         Map<Integer,ItemStack> items=new HashMap<>(); Map<Integer,Binding> actions=new HashMap<>();
         Map<Integer,GuiPreviewService.Entry> entries=new HashMap<>();
         var positions=gui.entrySlots(state.context().screen());
         preview.ifPresent(p->{for(int i=0;i<Math.min(positions.size(),p.entries().size());i++) entries.put(positions.get(i),p.entries().get(i));});
         int iconBytes=0;
         for(int slot=0;slot<menu.size();slot++) {
-            var configured=menu.slots().get(slot); var e=configured;
+            var configured=menu.slots().get(slot);
+            if(configured==null) { items.put(slot,new ItemStack(Material.AIR)); continue; }
+            var e=configured;
             var row=entries.get(slot); Map<String,String> params=new HashMap<>(shared);
             Optional<ItemSnapshot> icon=Optional.empty(); boolean selected=false; String argument=e.argument();
             if(GuiMenus.isEntry(e.role())) {
-                if(row==null) e=filler;
+                if(row==null) {
+                    if(filler.isEmpty()) { items.put(slot,new ItemStack(Material.AIR)); continue; }
+                    e=filler.orElseThrow();
+                }
                 else {
                     argument=row.id(); params.put("id",row.id());
                     if(e.role()==MenuDefinition.Role.CATALOG_ENTRY) {
@@ -65,7 +71,7 @@ public final class GuiRenderer {
             boolean iconFallback=icon.isPresent()&&(icon.orElseThrow().byteSize()>gui.settings().maximumIconBytes()
                     || iconBytes+icon.orElseThrow().byteSize()>524288);
             if(icon.isPresent()&&!iconFallback) iconBytes+=icon.orElseThrow().byteSize();
-            var rendered=item(e,params,iconFallback?Optional.empty():icon,selected,iconFallback);
+            var rendered=item(e,params,iconFallback?Optional.empty():icon,selected,iconFallback,runtime.upgradesEnabled());
             if(e.role()==MenuDefinition.Role.INFO && preview.isPresent()) {
                 var details=new ArrayList<Component>(Optional.ofNullable(rendered.getItemMeta().lore()).orElse(List.of()));
                 preview.orElseThrow().quote().ifPresent(result->{
@@ -116,7 +122,7 @@ public final class GuiRenderer {
         });
         return data;
     }
-    private ItemStack item(MenuDefinition.Element e, Map<String,String> params, Optional<ItemSnapshot> preview, boolean selected, boolean fallback) {
+    private ItemStack item(MenuDefinition.Element e, Map<String,String> params, Optional<ItemSnapshot> preview, boolean selected, boolean fallback,boolean upgradesEnabled) {
         boolean cacheable=preview.isEmpty()&&!selected&&!fallback&&e.role()==MenuDefinition.Role.FILLER
                 &&!e.name().contains("{")&&e.lore().stream().noneMatch(s->s.contains("{"));
         if(cacheable&&staticItems.containsKey(e)) return staticItems.get(e).clone();
@@ -136,12 +142,14 @@ public final class GuiRenderer {
         var lore=new ArrayList<Component>();
         for(String line:e.lore()) lore.add(messages.template(line,params).decoration(TextDecoration.ITALIC,false));
         if(unavailable) lore.add(messages.component("gui-icon-fallback",Map.of()).decoration(TextDecoration.ITALIC,false));
-        if(e.role()==MenuDefinition.Role.SOURCE_INPUT||e.action()==MenuDefinition.Action.UPGRADE)
+        if(e.role()==MenuDefinition.Role.SOURCE_INPUT||e.action()==MenuDefinition.Action.UPGRADE&&!upgradesEnabled)
             lore.add(messages.component("gui-preview-only-lore",Map.of()).decoration(TextDecoration.ITALIC,false));
-        if(e.action()==MenuDefinition.Action.UPGRADE) lore.add(messages.component("gui-fee-warning",Map.of()).decoration(TextDecoration.ITALIC,false));
+        if(e.action()==MenuDefinition.Action.UPGRADE) lore.add(messages.component(upgradesEnabled?"gui-fee-live-warning":"gui-fee-warning",Map.of()).decoration(TextDecoration.ITALIC,false));
         meta.lore(lore); meta.setEnchantmentGlintOverride(e.glow()||selected);
-        if(!e.itemModel().isEmpty()) meta.setItemModel(NamespacedKey.fromString(e.itemModel()));
-        if(e.customModelData()!=null) meta.setCustomModelData(e.customModelData());
+        // Dynamic source/target/catalog previews keep their real material and model. The configured
+        // PAPER + empty model is only a fallback/button presentation, never an override of real items.
+        if(preview.isEmpty()&&!e.itemModel().isEmpty()) meta.setItemModel(NamespacedKey.fromString(e.itemModel()));
+        if(preview.isEmpty()&&e.customModelData()!=null) meta.setCustomModelData(e.customModelData());
         item.setItemMeta(meta);
         if(cacheable&&staticItems.size()<256) staticItems.put(e,item.clone());
         return item;

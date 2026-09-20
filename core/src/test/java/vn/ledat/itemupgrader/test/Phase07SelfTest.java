@@ -21,7 +21,7 @@ public final class Phase07SelfTest {
     private static final UUID VIEWER = new UUID(0, 1), REFERENCE = new UUID(1234, 5678);
     private Phase07SelfTest() {}
     public static void main(String[] args) throws Exception {
-        presetTests(); timelineTests(); menuTests(); sessionTests(); readerTests(); clickTests();
+        presetTests(); timelineTests(); menuTests(); sessionTests(); titlePacketFenceTests(); readerTests(); clickTests();
         int failures = 0; var xml = new StringBuilder();
         for (var entry : TESTS.entrySet()) {
             long started = System.nanoTime(); String failure = null;
@@ -170,6 +170,13 @@ public final class Phase07SelfTest {
         test("menu.immutable-copy", () -> {
             var m=menu();rejects(()->m.trackOrder().clear());rejects(()->m.symbols().clear());rejects(()->m.icons().clear());rejects(()->m.frame(timeline(AnimationPreset.quick()).sample(0)).clear());
         });
+        test("menu.title-animation-bounded-and-cycles", () -> {
+            var m=menu();var animated=new AnimationMenu(m.title(),List.of("one","two","three"),1,m.matrix(),m.symbols(),m.trackOrder(),m.icons());
+            eq("one",animated.titleFrame(0));eq("two",animated.titleFrame(1));eq("one",animated.titleFrame(3));
+            rejects(()->animated.titleFrames().clear());rejects(()->animated.titleFrame(-1));
+            rejects(()->new AnimationMenu(m.title(),List.of(),1,m.matrix(),m.symbols(),m.trackOrder(),m.icons()));
+            rejects(()->new AnimationMenu(m.title(),List.of("x"),0,m.matrix(),m.symbols(),m.trackOrder(),m.icons()));
+        });
         test("menu.dirty-update-usual-step-is-two-slots", () -> {
             var m=menu();var a=m.frame(new AnimationTimeline.Frame(AnimationTimeline.Phase.SPIN,1,1,Optional.empty()));
             var b=m.frame(new AnimationTimeline.Frame(AnimationTimeline.Phase.SPIN,2,2,Optional.empty()));
@@ -308,6 +315,34 @@ public final class Phase07SelfTest {
         });
         test("session.invalid-budget-and-token-rejected", () -> {
             var h=opened(AnimationPreset.quick());for(int n:List.of(0,-1,33))rejects(()->h.store().poll(n));rejects(()->new AnimationSessionStore.Token(VIEWER,UUID.randomUUID(),REFERENCE,0));
+        });
+        test("session.title-frames-advance-without-item-frame-change", () -> {
+            var clock=new AtomicLong();var store=new AnimationSessionStore(clock::get);
+            store.open(UUID.randomUUID(),1,request(AnimationRequest.Outcome.WIN),AnimationPreset.roulette(),12,1,
+                    Duration.ofSeconds(5),Duration.ofMillis(120),3,Duration.ofMillis(50)).orElseThrow();
+            var first=store.poll(1).getFirst();eq(0L,first.titleFrame());store.acknowledge(first);
+            clock.set(50_000_000L);var second=store.poll(1).getFirst();eq(1L,second.titleFrame());
+            eq(first.frame(),second.frame());store.acknowledge(second);
+            clock.set(100_000_000L);eq(2L,store.poll(1).getFirst().titleFrame());
+        });
+    }
+    private static void titlePacketFenceTests() {
+        test("packet-fence-captures-only-owned-open-window", () -> {
+            var fence=new TitlePacketFence<AnimationSessionStore.Token>(AnimationSessionStore.Token::viewer);var store=new AnimationSessionStore(()->0);
+            var token=store.open(UUID.randomUUID(),1,request(AnimationRequest.Outcome.WIN),AnimationPreset.quick(),12,1,
+                    Duration.ofSeconds(5),Duration.ofMillis(120)).orElseThrow();
+            check(!fence.capture(token.viewer(),7,5));check(fence.begin(token));check(fence.capture(token.viewer(),7,5));
+            check(!fence.capture(token.viewer(),8,5));eq(new TitlePacketFence.Container(7,5),fence.activate(token).orElseThrow());
+            // A later OPEN_WINDOW belongs to a replacement/foreign GUI and cannot overwrite the active container.
+            check(!fence.capture(token.viewer(),9,2));eq(new TitlePacketFence.Container(7,5),fence.current(token).orElseThrow());
+        });
+        test("packet-fence-stale-token-cannot-send-or-release-replacement", () -> {
+            var fence=new TitlePacketFence<AnimationSessionStore.Token>(AnimationSessionStore.Token::viewer);var store=new AnimationSessionStore(()->0);UUID session=UUID.randomUUID();
+            var old=store.open(session,1,request(AnimationRequest.Outcome.WIN),AnimationPreset.quick(),12,1,Duration.ofSeconds(5),Duration.ofMillis(120)).orElseThrow();
+            check(fence.begin(old));check(fence.capture(old.viewer(),3,5));fence.activate(old).orElseThrow();fence.release(old);store.close(old);
+            var fresh=store.open(session,1,request(AnimationRequest.Outcome.WIN),AnimationPreset.quick(),12,1,Duration.ofSeconds(5),Duration.ofMillis(120)).orElseThrow();
+            check(fence.begin(fresh));check(fence.capture(fresh.viewer(),4,5));fence.activate(fresh).orElseThrow();
+            check(fence.current(old).isEmpty());fence.release(old);eq(new TitlePacketFence.Container(4,5),fence.current(fresh).orElseThrow());
         });
     }
     private static AttemptRecord drawn(boolean success) {

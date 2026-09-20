@@ -44,6 +44,8 @@ tasks.register('buildLeDatPlatformApi', Exec) {
 dependencies {
     implementation project(':core')
     compileOnly 'io.papermc.paper:paper-api:1.21.4-R0.1-SNAPSHOT'
+    // Runtime plugin dependency. We use its version-safe OPEN_WINDOW wrapper but never bundle or bootstrap it.
+    compileOnly 'com.github.retrooper:packetevents-spigot:2.13.0'
     compileOnly 'org.yaml:snakeyaml:2.2'
     // Fixed compatibility baseline; no bundled PAPI classes. Uses the String API, not 2.12 Components.
     compileOnly 'me.clip:placeholderapi:2.11.6'
@@ -124,9 +126,11 @@ tasks.register('verifyReleaseJar') {
             def entries = archive.entries().collect { it.name }
             if (entries.any { it.startsWith('vn/ledat/platform/') })
                 throw new GradleException(release.name + ' must not bundle LeDatPlatform API or implementation classes')
+            if (entries.any { it.startsWith('com/github/retrooper/packetevents/') || it.startsWith('io/github/retrooper/packetevents/') })
+                throw new GradleException(release.name + ' must not bundle PacketEvents; it is a server plugin dependency')
             def pluginYml = archive.getInputStream(archive.getEntry('plugin.yml')).getText('UTF-8')
-            if (!pluginYml.contains('depend: [LeDatPlatform]'))
-                throw new GradleException(release.name + ' must retain depend: [LeDatPlatform] in plugin.yml')
+            if (!pluginYml.contains('depend: [LeDatPlatform, packetevents]'))
+                throw new GradleException(release.name + ' must retain LeDatPlatform and packetevents in plugin.yml depend')
         }
     }
 }

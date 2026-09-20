@@ -35,9 +35,18 @@ public final class PlatformAccess {
     }
     public Optional<Object> identity(ItemStack item) { return api.items().identify(item).map(key -> (Object) key); }
     public Optional<ItemStack> create(String key) { return api.items().create(key, 1); }
+    public Optional<ItemStack> create(String key, int amount) { return api.items().create(key, amount); }
     /** Call only on the Paper owner thread. Availability/number validation belongs to the snapshot adapter. */
     public Optional<java.math.BigDecimal> balance(Player player, String providerId) {
         return api.economy().provider(providerId).map(provider -> provider.balance(player));
+    }
+    public boolean withdraw(Player player,String providerId,java.math.BigDecimal amount) {
+        return api.economy().provider(providerId).filter(provider->provider.available())
+                .map(provider->provider.withdraw(player,amount).success()).orElse(false);
+    }
+    public boolean deposit(Player player,String providerId,java.math.BigDecimal amount) {
+        return api.economy().provider(providerId).filter(provider->provider.available())
+                .map(provider->provider.deposit(player,amount).success()).orElse(false);
     }
     public void ensureFiles() {
         api.configs().ensureMainConfig(owner, 1);

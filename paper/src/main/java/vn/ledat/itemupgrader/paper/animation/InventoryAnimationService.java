@@ -4,6 +4,7 @@ import java.util.*;
 import java.util.logging.Level;
 import net.kyori.adventure.key.Key;
 import net.kyori.adventure.sound.Sound;
+import net.kyori.adventure.text.Component;
 import org.bukkit.GameMode;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
@@ -26,8 +27,9 @@ public final class InventoryAnimationService {
     private static final class View {
         final AnimationHolder holder; final AnimationRenderer renderer; final AnimationConfiguration config;
         Map<Integer, ItemStack> last = Map.of();
-        View(AnimationHolder holder, AnimationRenderer renderer, AnimationConfiguration config) {
-            this.holder = holder; this.renderer = renderer; this.config = config;
+        Component lastTitle;
+        View(AnimationHolder holder, AnimationRenderer renderer, AnimationConfiguration config, Component lastTitle) {
+            this.holder = holder; this.renderer = renderer; this.config = config; this.lastTitle = lastTitle;
         }
     }
     private final JavaPlugin owner;
@@ -40,11 +42,13 @@ public final class InventoryAnimationService {
     private final Map<UUID, Pending> pending = new HashMap<>();
     private final Set<AnimationSessionStore.Token> pendingActions = new HashSet<>();
     private final PaperGuiScheduler scheduler;
+    private final PacketEventsTitlePackets titlePackets;
     private boolean stopped, logged;
     private long lastLog, observedRevision = -1; private int suppressed;
     public InventoryAnimationService(JavaPlugin owner, PlatformAccess platform, RuntimeStore<UpgraderRuntime> runtime, Messages messages) {
         this.owner = owner; this.platform = platform; this.runtime = runtime; this.messages = messages;
         this.scheduler = new PaperGuiScheduler(owner, platform);
+        this.titlePackets = new PacketEventsTitlePackets(owner);
     }
     public void start() {
         scheduler.repeat(() -> { try { tick(); } catch (RuntimeException error) { report(error); } }, 1);
@@ -95,17 +99,25 @@ public final class InventoryAnimationService {
                 || System.nanoTime() - job.started() >= config.callbackTimeout().toNanos()) return;
         var preset = config.presets().get(job.preset());
         var opened = sessions.open(job.id(), job.revision(), job.request(), preset, config.menu().trackOrder().size(),
-                config.maximumSessions(), config.callbackTimeout(), config.pulseInterval());
+                config.maximumSessions(), config.callbackTimeout(), config.pulseInterval(), config.menu().titleFrames().size(),
+                java.time.Duration.ofMillis(config.menu().titleIntervalTicks() * 50L));
         if (opened.isEmpty()) { messages.send(player, "backend-busy"); return; }
         var token = opened.orElseThrow();
         try {
             var renderer = new AnimationRenderer(messages, config, job.request(), job.preset());
-            var holder = new AnimationHolder(ownerToken, token, config.menu().size(), renderer.title());
-            var view = new View(holder, renderer, config); views.put(viewer, view);
+            var firstFrame = new AnimationTimeline(preset, config.menu().trackOrder().size(), job.request()).sample(0);
+            var firstTitle = renderer.title(firstFrame, 0);
+            var holder = new AnimationHolder(ownerToken, token, config.menu().size(), firstTitle);
+            var view = new View(holder, renderer, config, firstTitle); views.put(viewer, view);
             // Fill before open; first batch update acknowledges what the player actually sees.
-            apply(view, new AnimationTimeline(preset, config.menu().trackOrder().size(), job.request()).sample(0));
-            player.openInventory(holder.getInventory());
+            applyItems(view, firstFrame);
+            if (!titlePackets.expect(token, holder.getInventory())) throw new IllegalStateException("title packet session already exists");
+            if (!titlePackets.arm(player, token, holder.getInventory())) throw new IllegalStateException("title packet capture could not be armed");
+            try { player.openInventory(holder.getInventory()); }
+            finally { titlePackets.disarm(token); }
             if (player.getOpenInventory().getTopInventory() != holder.getInventory()) { remove(token); return; }
+            if (!titlePackets.activate(player, token, holder.getInventory()))
+                throw new IllegalStateException("owned OPEN_WINDOW packet was not captured");
             messages.send(player, "animation-preview-start", Map.of("preset", preset.id()));
         } catch (RuntimeException error) { failure(token, error); }
     }
@@ -137,11 +149,21 @@ public final class InventoryAnimationService {
                 || player.getOpenInventory().getTopInventory() != v.holder.getInventory()
                 || !player.getItemOnCursor().getType().isAir()) { closeExact(update.token(), null); return; }
         try {
-            apply(v, update.frame().orElseThrow());
+            apply(player, v, update);
             sessions.acknowledge(update).ifPresent(cue -> playCue(player, v.config, cue));
         } catch (RuntimeException error) { failure(update.token(), error); }
     }
-    private void apply(View v, AnimationTimeline.Frame frame) {
+    private void apply(Player player, View v, AnimationSessionStore.Update update) {
+        var frame = update.frame().orElseThrow();
+        Component title = v.renderer.title(frame, update.titleFrame());
+        if (!title.equals(v.lastTitle)) {
+            if (!titlePackets.send(player, v.holder.token(), v.holder.getInventory(), title))
+                throw new IllegalStateException("animated title lost its exact owned container");
+            v.lastTitle = title;
+        }
+        applyItems(v, frame);
+    }
+    private void applyItems(View v, AnimationTimeline.Frame frame) {
         Map<Integer, ItemStack> next = v.renderer.render(frame);
         for (var entry : SlotDiff.changed(v.last, next, v.holder.getInventory().getSize()).entrySet())
             v.holder.getInventory().setItem(entry.getKey(), entry.getValue().clone());
@@ -179,7 +201,10 @@ public final class InventoryAnimationService {
     }
     private void remove(AnimationSessionStore.Token token) {
         sessions.close(token); pendingActions.remove(token); var v = view(token);
-        if (v != null) views.remove(token.viewer(), v);
+        if (v != null) {
+            views.remove(token.viewer(), v);
+            titlePackets.release(token);
+        }
     }
     private void closeExact(AnimationSessionStore.Token token, String message) {
         View v = view(token); remove(token); if (v == null) return;
@@ -216,5 +241,6 @@ public final class InventoryAnimationService {
             if (p != null && p.getOpenInventory().getTopInventory() == entry.getValue().holder.getInventory()) p.closeInventory();
         }
         views.clear();
+        titlePackets.close();
     }
 }
