@@ -127,6 +127,7 @@ gui-cursor-not-empty: '{prefix}<yellow>Hãy đặt item trên con trỏ về tú
 gui-opened-preview: '{prefix}<aqua>Click item trong túi để chọn. Item chỉ được commit sau khi bấm Nâng cấp và mũi tên dừng.</aqua>'
 gui-transactions-locked: '{prefix}<yellow>Chưa thể roll: native escrow, economy và delivery chưa được mở. Không mất tiền/item.</yellow>'
 gui-roll-started: '{prefix}<yellow>Đang roll... Không đóng menu cho tới khi mũi tên dừng.</yellow>'
+gui-roll-display-interrupted: '{prefix}<yellow>Phần hiển thị roll bị gián đoạn; item và tiền chưa thay đổi. Mở lại menu để thử lại.</yellow>'
 gui-roll-success: '{prefix}<green>Nâng cấp thành công! Item đích đã được đưa vào túi.</green>'
 gui-roll-failure: '{prefix}<red>Nâng cấp thất bại.</red>'
 gui-roll-commit-failed: '{prefix}<red>Không thể commit kết quả; item và tiền không bị thay đổi hoặc đã được hoàn tác.</red>'

@@ -142,7 +142,7 @@ public final class InventoryGuiService {
                         .orElseThrow(()->new IllegalArgumentException("upgrade quote unavailable"));
                 var plan=loader.prepareAttempt(player,stable,definition,v.loaded);
                 var prepared=upgrades.prepare(player,definition,plan);
-                startTitleRoll(player,v,stable,layout,data,layout.sampleBar(prepared.sample()),prepared);
+                if(!startTitleRoll(player,v,stable,layout,data,layout.sampleBar(prepared.sample()),prepared)) return;
                 messages.send(player,"gui-roll-started");cue(player,definition,"click");
                 return;
             }
@@ -338,7 +338,10 @@ public final class InventoryGuiService {
             View expected=candidates.get((start+i)%candidates.size());
             try { platform.player(expected.titleToken.viewer(),player->{
                 try { animateTitle(player,expected,layout.orElseThrow()); }
-                catch(RuntimeException error) { warnTitle("dynamic title rendering failed",error); disableTitle(expected,null); }
+                catch(RuntimeException error) {
+                    warnTitle("dynamic title rendering failed",error);
+                    if(disableTitle(expected,null)) messages.send(player,"gui-roll-display-interrupted");
+                }
             }); }
             catch(RuntimeException error) { warnTitle("dynamic title callback failed",error); disableTitle(expected,null); }
         }
@@ -377,13 +380,14 @@ public final class InventoryGuiService {
             }
         }
     }
-    private void startTitleRoll(Player player,View view,GuiSessionStore.State state,UpgraderTitleLayout layout,
-                                UpgraderTitleRenderer.Data data,int landingBar,NativeTestUpgradeService.Prepared prepared) {
+    private boolean startTitleRoll(Player player,View view,GuiSessionStore.State state,UpgraderTitleLayout layout,
+                                   UpgraderTitleRenderer.Data data,int landingBar,NativeTestUpgradeService.Prepared prepared) {
         if(!view.titleActive||view.titleToken==null)throw new IllegalArgumentException("upgrade title packet unavailable");
         view.titleState=state;view.titleSignature=data.signature();view.rollData=data;view.landingBar=landingBar;view.pendingUpgrade=prepared;
         view.titleStarted=titleTick; view.titleRollSeed=ThreadLocalRandom.current().nextLong();
         view.titleComplete=false; view.titleRolling=true;
         sendTitle(player,view,titleRenderer.preview(player,layout,data));
+        return view.titleActive&&view.titleRolling&&view.pendingUpgrade==prepared;
     }
     private void sendTitle(Player player,View view,Component title) {
         if(!view.titleActive||title.equals(view.lastTitle)) return;
@@ -392,16 +396,22 @@ public final class InventoryGuiService {
     private void forceTitle(Player player,View view,Component title) {
         if(!view.titleActive) return;
         if(!titlePackets.send(player,view.titleToken,view.holder.getInventory(),title)) {
-            disableTitle(view,"the exact owned container was lost");
+            if(disableTitle(view,"the exact owned container was lost")) messages.send(player,"gui-roll-display-interrupted");
             return;
         }
         view.lastTitle=title;
     }
-    private void disableTitle(View view,String reason) {
-        if(view==null||!view.titleActive) return;
+    private boolean disableTitle(View view,String reason) {
+        if(view==null||!view.titleActive) return false;
+        boolean interruptedRoll=view.pendingUpgrade!=null;
         view.titleActive=false; view.titleRolling=false; view.titleComplete=true;
+        // The title is the acknowledgement boundary for the opt-in native executor. If that
+        // presentation channel is lost, discard the prepared outcome rather than committing an
+        // invisible result or leaving the player in a stale rolling state.
+        view.pendingUpgrade=null; view.rollData=null;
         if(view.titleToken!=null) titlePackets.release(view.titleToken);
         if(reason!=null) warnTitle(reason,null);
+        return interruptedRoll;
     }
     private void releaseTitle(View view) {
         if(view!=null&&view.titleToken!=null) titlePackets.release(view.titleToken);

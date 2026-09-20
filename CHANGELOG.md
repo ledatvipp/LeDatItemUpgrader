@@ -2,6 +2,7 @@
 
 ## Unreleased — scoped animated inventory title packets
 
+- Nếu packet title/resource-pack mất giữa native test roll, hủy prepared outcome, xóa trạng thái chờ và báo người chơi thử lại; không commit item hoặc tiền cho kết quả không thể hiển thị.
 - Thêm native test upgrade flow opt-in: revalidate quote/item/phí, server-side SecureRandom ticket, arrow chỉ chạy sau click, rồi commit CLEAN + DESTROY/KEEP với economy rollback khi debit bị từ chối.
 - Bỏ toàn bộ glass filler; slot `.` để trống thật, icon còn lại dùng `PAPER` + `thanhviet:empty`.
 - Sửa title refresh làm trống GUI: mỗi `OPEN_WINDOW` giờ resync exact inventory ngay sau khi đổi title.
